@@ -1,0 +1,129 @@
+// Item recursivo da sidebar — renderiza um grupo do cofre com suporte
+// a expandir/colapsar e indentação proporcional à profundidade.
+//
+// UX:
+//   - DOIS botões separados (chevron + nome). Clique no nome seleciona o
+//     grupo; clique no chevron alterna expand/collapse. Sem
+//     `stopPropagation` necessário porque os elementos clicáveis são
+//     diferentes (semântica HTML correta).
+//   - Indentação 12px por nível, saturando em 96px após nível 8 (estilo
+//     VS Code Explorer): texto sempre legível, hierarquia visível.
+//   - Nó raiz (`forceExpanded`) NÃO renderiza chevron — sempre mostra
+//     filhos (faz sentido pro "container do cofre", evita confusão de
+//     "por que não posso colapsar o cofre?").
+//   - Folhas (sem children) reservam espaço de chevron pra alinhar com
+//     o ícone Folder dos pares que têm chevron.
+
+import { ChevronDown, ChevronRight, Folder, Trash2 } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import type { GroupTreeNode } from "@/stores/vault";
+
+const INDENT_PX_PER_LEVEL = 12;
+const INDENT_PX_MAX = 96;
+const BASE_LEFT_PADDING_PX = 8;
+
+export interface GroupTreeItemProps {
+  node: GroupTreeNode;
+  selectedGroupUuid: string | null;
+  expanded: boolean;
+  forceExpanded?: boolean;
+  onSelect: (uuid: string) => void;
+  onToggleExpanded: (uuid: string) => void;
+  isExpanded: (uuid: string) => boolean;
+}
+
+export function GroupTreeItem({
+  node,
+  selectedGroupUuid,
+  expanded,
+  forceExpanded = false,
+  onSelect,
+  onToggleExpanded,
+  isExpanded,
+}: GroupTreeItemProps) {
+  const selected = node.uuid === selectedGroupUuid;
+  const hasChildren = node.children.length > 0;
+  const showChildren = forceExpanded || (hasChildren && expanded);
+
+  const indentPx =
+    Math.min(node.depth * INDENT_PX_PER_LEVEL, INDENT_PX_MAX) +
+    BASE_LEFT_PADDING_PX;
+
+  const Icon = node.isRecycleBin ? Trash2 : Folder;
+
+  return (
+    <div>
+      <div
+        className={cn(
+          "group flex items-center gap-1 pr-2 py-1.5 rounded-md text-sm transition-colors",
+          selected
+            ? "bg-brand-soft font-semibold text-foreground"
+            : "hover:bg-muted text-foreground",
+        )}
+        style={{ paddingLeft: `${indentPx}px` }}
+        data-group-uuid={node.uuid}
+      >
+        {forceExpanded ? (
+          // Nó raiz: sem chevron, apenas espaço reservado pra alinhar
+          // ícones de Folder dos filhos. Largura igual ao chevron-button.
+          <span className="size-4 shrink-0" aria-hidden="true" />
+        ) : hasChildren ? (
+          <button
+            type="button"
+            onClick={() => onToggleExpanded(node.uuid)}
+            className="size-4 shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-sm"
+            aria-label={expanded ? "Colapsar grupo" : "Expandir grupo"}
+            tabIndex={-1}
+          >
+            {expanded ? (
+              <ChevronDown className="size-3" />
+            ) : (
+              <ChevronRight className="size-3" />
+            )}
+          </button>
+        ) : (
+          // Folha (sem children): espaço reservado pra manter alinhamento
+          // do ícone Folder com pares que têm chevron.
+          <span className="size-4 shrink-0" aria-hidden="true" />
+        )}
+
+        <button
+          type="button"
+          onClick={() => onSelect(node.uuid)}
+          className="flex-1 min-w-0 flex items-center gap-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-sm"
+          data-group-name-uuid={node.uuid}
+        >
+          <Icon
+            className={cn(
+              "size-4 shrink-0",
+              node.isRecycleBin
+                ? "text-muted-foreground"
+                : "text-brand-tertiary",
+            )}
+          />
+          <span className="flex-1 truncate">{node.name}</span>
+          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+            {node.entryCount}
+          </span>
+        </button>
+      </div>
+
+      {showChildren && (
+        <div>
+          {node.children.map((child) => (
+            <GroupTreeItem
+              key={child.uuid}
+              node={child}
+              selectedGroupUuid={selectedGroupUuid}
+              expanded={isExpanded(child.uuid)}
+              onSelect={onSelect}
+              onToggleExpanded={onToggleExpanded}
+              isExpanded={isExpanded}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

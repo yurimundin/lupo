@@ -54,6 +54,20 @@ interface SettingsState {
    * disco (cair em OpenCreateScreen sem ruído).
    */
   lastOpenedVaultPath: string | null;
+  /**
+   * Mapa `<filePath do cofre>` → array de UUIDs de grupos atualmente
+   * expandidos na sidebar daquele cofre. Persistido entre sessões para
+   * manter o layout escolhido pelo usuário (igual ao KeePassXC, VS Code
+   * Explorer, etc.).
+   *
+   * Mesma natureza de "metadata operacional" dos demais campos por
+   * vault path — ver §6 do CLAUDE.md.
+   *
+   * Estado inicial: vazio. O nó raiz da árvore renderiza com
+   * `forceExpanded` no componente, então a UX inicial sempre mostra os
+   * subgrupos do primeiro nível mesmo sem registro persistido.
+   */
+  expandedGroupsByVault: Record<string, string[]>;
 
   setAutoLockMs(ms: number): void;
   setClipboardAutoClearMs(ms: number): void;
@@ -63,6 +77,8 @@ interface SettingsState {
   forgetKeyFile(vaultPath: string): void;
   getRememberedKeyFile(vaultPath: string): string | null;
   setLastOpenedVaultPath(path: string | null): void;
+  toggleGroupExpanded(vaultPath: string, groupUuid: string): void;
+  isGroupExpanded(vaultPath: string, groupUuid: string): boolean;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -73,6 +89,7 @@ export const useSettingsStore = create<SettingsState>()(
       seenKeyFileBanner: {},
       keyFilePathByVault: {},
       lastOpenedVaultPath: null,
+      expandedGroupsByVault: {},
 
       setAutoLockMs: (autoLockMs) => set({ autoLockMs }),
       setClipboardAutoClearMs: (clipboardAutoClearMs) =>
@@ -102,6 +119,23 @@ export const useSettingsStore = create<SettingsState>()(
       getRememberedKeyFile: (vaultPath) =>
         get().keyFilePathByVault[vaultPath] ?? null,
       setLastOpenedVaultPath: (path) => set({ lastOpenedVaultPath: path }),
+      toggleGroupExpanded: (vaultPath, groupUuid) =>
+        set((state) => {
+          const current = state.expandedGroupsByVault[vaultPath] ?? [];
+          const next = current.includes(groupUuid)
+            ? current.filter((id) => id !== groupUuid)
+            : [...current, groupUuid];
+          return {
+            expandedGroupsByVault: {
+              ...state.expandedGroupsByVault,
+              [vaultPath]: next,
+            },
+          };
+        }),
+      isGroupExpanded: (vaultPath, groupUuid) => {
+        const expanded = get().expandedGroupsByVault[vaultPath] ?? [];
+        return expanded.includes(groupUuid);
+      },
     }),
     { name: "sec-basis-settings" },
   ),

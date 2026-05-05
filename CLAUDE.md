@@ -1804,3 +1804,64 @@ para futuros contributors entenderem o design.
 "TODO de cleanup" sem investigar o código. Sessão 10 investigou e
 descobriu que arquitetura era sólida. Princípio: antes de marcar
 algo como dívida técnica, investigar se realmente é problema.
+
+---
+
+## 27. Subgrupos expansíveis na sidebar (Sessão 11)
+
+**Contexto:** KDBX permite hierarquia arbitrária de grupos, mas a
+sidebar do Sec.Basis até a Sessão 10 só renderizava filhos diretos
+do grupo raiz. Cofres importados de KeePassXC com hierarquia
+profunda (típico em uso real) ficavam mal representados.
+
+**Implementação:**
+
+- **Selector `useGroupTree()`** em
+  [vault.ts](src/stores/vault.ts) — retorna a árvore inteira (sempre
+  array de length 1: o nó raiz com `children` recursivos). Memoizado
+  por `[kdbx, vaultVersion, recycleBinUuidId]` (ver §15 — sem isso,
+  loop infinito do `useSyncExternalStore`). Cada nó tem
+  `{ uuid, name, depth, children, parentUuid, isRecycleBin, entryCount }`.
+  `name` já passa por `getGroupDisplayName` (Lixeira i18n).
+
+- **Componente recursivo
+  [`<GroupTreeItem />`](src/components/vault/GroupTreeItem.tsx)** —
+  renderiza um nó e chama a si mesmo para cada filho expandido.
+  Indentação `Math.min(depth * 12, 96) + 8px` (estilo VS Code:
+  satura em nível 8, texto sempre legível).
+
+- **DOIS `<button>` separados** (chevron + nome do grupo). Click no
+  nome seleciona; click no chevron alterna expand/collapse. Sem
+  `stopPropagation` — semântica HTML correta com elementos clicáveis
+  distintos.
+
+- **Persistência:** `expandedGroupsByVault: { [vaultPath]: string[] }`
+  em [`useSettingsStore`](src/stores/settings.ts) → localStorage.
+  Mesmo padrão de `keyFilePathByVault` (§6). Estado por cofre, sobre-
+  vive entre sessões.
+
+- **Nó raiz:** `forceExpanded={true}` — sem chevron, sempre mostra
+  filhos. Faz sentido pro "container do cofre" (evita confusão "por
+  que não posso colapsar o cofre?"). Lixeira respeita a hierarquia
+  como qualquer outro grupo (com chevron quando tem subgrupos).
+
+**Keyboard nav recursiva:** flatten visível (`flattenVisible(tree,
+predicate)` em GroupSidebar) gera lista linear dos nós atualmente
+exibidos. ↑/↓ navega; → expande grupo focado (se folha pode receber
+focus mas não faz nada); ← colapsa OU sobe pro pai se já colapsado
+(estilo VS Code Explorer / KeePassXC). Nó raiz é âncora — ← sobre o
+raiz não faz nada.
+
+**`confirmDiscardIfDirty`** continua sendo aplicado APENAS na
+mudança de seleção (não no toggle de chevron) — alternar visual de
+um grupo não descarta draft.
+
+**Decisão de não-feature:** sem cache do flatten visível além do
+`useMemo` natural — re-derivação é O(n) e aciona só quando o set
+expandido ou a árvore muda. Cofres com >10k grupos podem precisar de
+otimização futura, mas isso é hipotético.
+
+**Estado inicial:** `expandedGroupsByVault[vaultPath]` ausente (sem
+registro persistido) → conjunto vazio → todos os grupos colapsados.
+A UX inicial sempre mostra o primeiro nível porque o nó raiz tem
+`forceExpanded`.

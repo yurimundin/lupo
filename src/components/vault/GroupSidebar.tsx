@@ -1,51 +1,107 @@
-// Sidebar (esquerda) — lista de grupos do cofre.
+// Sidebar (esquerda) — árvore recursiva de grupos do cofre.
 //
-// Por enquanto render flat (sem subgrupos expansíveis). O grupo raiz
-// aparece como primeiro item. Setas ↑/↓ navegam quando algum item está
-// focado; Enter/Espaço seleciona (comportamento padrão do <button>).
+// Sessão 11: substitui o render flat (filhos diretos do root) por
+// hierarquia recursiva. Cada grupo pode ter chevron de expand/collapse
+// (estado persistido por cofre em `useSettingsStore`). Ver §27 do
+// CLAUDE.md.
+//
+// Keyboard nav: as setas ↑/↓ navegam pelos grupos VISÍVEIS (flatten da
+// árvore considerando estado expandido/colapsado). Setas →/← respeitam
+// o nó focado: → expande (se folha pode receber focus mas não faz nada),
+// ← colapsa (ou sobe pro pai se já colapsado). Padrão alinhado com
+// VS Code Explorer / KeePassXC.
 
-import { Folder, Trash2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { confirmDialog } from "@/lib/confirm";
-import { cn } from "@/lib/utils";
+import { useSettingsStore } from "@/stores/settings";
 import {
-  getGroupDisplayName,
+  type GroupTreeNode,
   getHasUnsavedChanges,
-  useRecycleBinUuidId,
-  useTopLevelGroups,
+  useGroupTree,
   useVaultStore,
 } from "@/stores/vault";
 
+import { GroupTreeItem } from "./GroupTreeItem";
+
+interface FlatNode {
+  node: GroupTreeNode;
+  visible: boolean;
+}
+
+/**
+ * Achata a árvore em uma lista linear na ordem visível, considerando
+ * `forceExpanded` no nó raiz e o predicado `expandedPredicate` para os
+ * demais. Usado pra keyboard nav (precisa de índice global do nó focado
+ * em relação aos visíveis).
+ */
+function flattenVisible(
+  tree: GroupTreeNode[],
+  expandedPredicate: (uuid: string) => boolean,
+): FlatNode[] {
+  const out: FlatNode[] = [];
+  function walk(node: GroupTreeNode, parentExpanded: boolean) {
+    const visible = parentExpanded;
+    out.push({ node, visible });
+    const isRoot = node.parentUuid === null;
+    const expanded = isRoot || expandedPredicate(node.uuid);
+    for (const child of node.children) {
+      walk(child, parentExpanded && expanded);
+    }
+  }
+  for (const root of tree) {
+    walk(root, true);
+  }
+  return out.filter((entry) => entry.visible);
+}
+
 export function GroupSidebar() {
-  const groups = useTopLevelGroups();
+  const tree = useGroupTree();
   const selectedGroupUuid = useVaultStore((s) => s.selectedGroupUuid);
   const selectGroup = useVaultStore((s) => s.selectGroup);
-  // UUID da Lixeira (string) ou null. Usado pra (a) trocar o ícone do
-  // grupo correspondente (Trash2 em vez de Folder) e (b) traduzir o nome
-  // exibido para "Lixeira" via `getGroupDisplayName` — sem mexer no XML
-  // canônico ("Recycle Bin"), preservando interop com KeePassXC.
-  const recycleBinUuidId = useRecycleBinUuidId();
+  const lastFilePath = useVaultStore((s) => s.lastFilePath);
+
+  const toggleGroupExpanded = useSettingsStore((s) => s.toggleGroupExpanded);
+  // Snapshot atômico do mapa por vault — re-renderiza quando muda. NÃO
+  // chamar `isGroupExpanded(...)` direto no render porque isso leria via
+  // `get()` sem subscribe (a UI não atualizaria).
+  const expandedForVault = useSettingsStore((s) =>
+    lastFilePath ? (s.expandedGroupsByVault[lastFilePath] ?? null) : null,
+  );
+
+  // Set imutável e estável por render — base do predicado pra renderer
+  // e pro flatten. Recriado quando o array muda (ref ou conteúdo).
+  const expandedSet = useMemo(
+    () => new Set(expandedForVault ?? []),
+    [expandedForVault],
+  );
 
   const containerRef = useRef<HTMLElement>(null);
 
-  // Sincroniza o foco no botão selecionado quando navegação por setas
-  // muda a seleção (mantém o "anel" do navegador no item certo).
+  // Mantém o foco do navegador no botão correspondente ao grupo selecionado.
+  // Quando a seleção muda via setas, atualiza o `tabindex` natural só
+  // depois do React re-renderizar.
   useEffect(() => {
     if (!selectedGroupUuid) return;
     const focused = document.activeElement;
     if (!(focused instanceof HTMLButtonElement)) return;
     if (!containerRef.current?.contains(focused)) return;
     const btn = containerRef.current.querySelector<HTMLButtonElement>(
-      `[data-group-uuid="${selectedGroupUuid}"]`,
+      `[data-group-name-uuid="${selectedGroupUuid}"]`,
     );
     btn?.focus();
   }, [selectedGroupUuid]);
 
+  // Lista linear dos nós visíveis — base da keyboard nav. Inclui o
+  // próprio nó raiz (que sempre é visível, `forceExpanded`).
+  const visibleNodes = useMemo(
+    () => flattenVisible(tree, (uuid) => expandedSet.has(uuid)),
+    [tree, expandedSet],
+  );
+
   /**
-   * Guard pra trocar de grupo quando há draft pendente. `selectGroup` no
-   * store já limpa editMode/draft, mas precisamos confirmar com o usuário
-   * antes pra ele não perder mudanças por engano.
+   * Confirma com o usuário antes de descartar mudanças não-salvas.
+   * Aplicado APENAS na mudança de seleção (não no toggle de chevron).
    */
   async function confirmDiscardIfDirty(): Promise<boolean> {
     if (!getHasUnsavedChanges()) return true;
@@ -59,23 +115,78 @@ export function GroupSidebar() {
     });
   }
 
-  async function handleGroupClick(uuid: string) {
+  async function handleSelect(uuid: string) {
     if (uuid === selectedGroupUuid) return;
     if (!(await confirmDiscardIfDirty())) return;
     selectGroup(uuid);
   }
 
-  async function handleKeyDown(e: React.KeyboardEvent, idx: number) {
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    const nextIdx =
-      e.key === "ArrowDown" ? idx + 1 : e.key === "ArrowUp" ? idx - 1 : -1;
-    if (nextIdx < 0 || nextIdx >= groups.length) return;
-    e.preventDefault();
-    if (!(await confirmDiscardIfDirty())) return;
-    selectGroup(groups[nextIdx].uuid.id);
+  function handleToggleExpanded(uuid: string) {
+    if (!lastFilePath) return;
+    toggleGroupExpanded(lastFilePath, uuid);
   }
 
-  if (groups.length === 0) {
+  function isExpanded(uuid: string): boolean {
+    return expandedSet.has(uuid);
+  }
+
+  /**
+   * Keyboard nav recursiva: ↑/↓ navega pelos visíveis; →/← expande/
+   * colapsa quando faz sentido. Atalhos de seleção via Enter/Espaço
+   * ficam por conta do comportamento padrão do `<button>`.
+   */
+  async function handleKeyDown(e: React.KeyboardEvent) {
+    if (
+      e.key !== "ArrowDown" &&
+      e.key !== "ArrowUp" &&
+      e.key !== "ArrowLeft" &&
+      e.key !== "ArrowRight"
+    ) {
+      return;
+    }
+
+    const idx = visibleNodes.findIndex(
+      (entry) => entry.node.uuid === selectedGroupUuid,
+    );
+    if (idx < 0) return;
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      const nextIdx = e.key === "ArrowDown" ? idx + 1 : idx - 1;
+      if (nextIdx < 0 || nextIdx >= visibleNodes.length) return;
+      e.preventDefault();
+      if (!(await confirmDiscardIfDirty())) return;
+      selectGroup(visibleNodes[nextIdx].node.uuid);
+      return;
+    }
+
+    const current = visibleNodes[idx].node;
+    const isRoot = current.parentUuid === null;
+    const hasChildren = current.children.length > 0;
+    const currentlyExpanded = isExpanded(current.uuid);
+
+    if (e.key === "ArrowRight" && hasChildren && !currentlyExpanded && !isRoot) {
+      e.preventDefault();
+      handleToggleExpanded(current.uuid);
+      return;
+    }
+
+    if (e.key === "ArrowLeft") {
+      if (hasChildren && currentlyExpanded && !isRoot) {
+        e.preventDefault();
+        handleToggleExpanded(current.uuid);
+        return;
+      }
+      // Já colapsado (ou folha): sobe pro pai (sem ser o root, pra não
+      // quebrar UX — root é sempre o ponto âncora).
+      if (current.parentUuid && current.parentUuid !== tree[0]?.uuid) {
+        e.preventDefault();
+        if (!(await confirmDiscardIfDirty())) return;
+        selectGroup(current.parentUuid);
+      }
+    }
+  }
+
+  if (tree.length === 0) {
     return (
       <aside className="border-r border-border p-3 text-xs text-muted-foreground">
         (sem grupos)
@@ -87,40 +198,20 @@ export function GroupSidebar() {
     <aside
       ref={containerRef}
       className="border-r border-border overflow-y-auto p-2 space-y-0.5"
+      onKeyDown={(e) => void handleKeyDown(e)}
     >
-      {groups.map((g, idx) => {
-        const selected = g.uuid.id === selectedGroupUuid;
-        const isRecycleBin = g.uuid.id === recycleBinUuidId;
-        const Icon = isRecycleBin ? Trash2 : Folder;
-        return (
-          <button
-            key={g.uuid.id}
-            type="button"
-            data-group-uuid={g.uuid.id}
-            onClick={() => void handleGroupClick(g.uuid.id)}
-            onKeyDown={(e) => void handleKeyDown(e, idx)}
-            className={cn(
-              "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-              selected
-                ? "bg-brand-soft font-semibold text-foreground"
-                : "hover:bg-muted text-foreground",
-            )}
-          >
-            <Icon
-              className={cn(
-                "size-4 shrink-0",
-                isRecycleBin ? "text-muted-foreground" : "text-brand-tertiary",
-              )}
-            />
-            <span className="flex-1 truncate">
-              {getGroupDisplayName(g, recycleBinUuidId)}
-            </span>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {g.entries.length}
-            </span>
-          </button>
-        );
-      })}
+      {tree.map((rootNode) => (
+        <GroupTreeItem
+          key={rootNode.uuid}
+          node={rootNode}
+          selectedGroupUuid={selectedGroupUuid}
+          expanded={true}
+          forceExpanded={true}
+          onSelect={(uuid) => void handleSelect(uuid)}
+          onToggleExpanded={handleToggleExpanded}
+          isExpanded={isExpanded}
+        />
+      ))}
     </aside>
   );
 }

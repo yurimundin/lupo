@@ -374,6 +374,10 @@ export function useEntriesOfCurrentGroup(): KdbxEntry[] {
  *
  * Mesmo padrão do `useEntriesOfCurrentGroup`: lógica em `useMemo` fora do
  * selector para não criar array novo a cada chamada.
+ *
+ * MANTIDO POR COMPATIBILIDADE — desde a Sessão 11 a sidebar usa
+ * `useGroupTree` (recursivo). Se outro consumidor não aparecer, esta
+ * função pode ser removida no futuro.
  */
 export function useTopLevelGroups(): KdbxGroup[] {
   const kdbx = useVaultStore((s) => s.kdbx);
@@ -385,6 +389,70 @@ export function useTopLevelGroups(): KdbxGroup[] {
     // que o usuário verá. Subgrupos vêm em seguida.
     return [root, ...root.groups];
   }, [kdbx, vaultVersion]);
+}
+
+/**
+ * Nó da árvore de grupos do cofre, pré-computado para a sidebar
+ * recursiva (Sessão 11).
+ *
+ * - `name` já passa por `getGroupDisplayName` (Lixeira i18n).
+ * - `entryCount` é a contagem direta de entries do próprio grupo,
+ *   sem somar entries de subgrupos (consistência com a contagem
+ *   exibida hoje no badge à direita).
+ * - `parentUuid === null` apenas no nó raiz.
+ */
+export interface GroupTreeNode {
+  uuid: string;
+  name: string;
+  depth: number;
+  children: GroupTreeNode[];
+  parentUuid: string | null;
+  isRecycleBin: boolean;
+  entryCount: number;
+}
+
+function buildGroupTreeNode(
+  group: KdbxGroup,
+  depth: number,
+  parentUuid: string | null,
+  recycleBinUuidId: string | null,
+): GroupTreeNode {
+  const uuidId = group.uuid.id;
+  return {
+    uuid: uuidId,
+    name: getGroupDisplayName(group, recycleBinUuidId),
+    depth,
+    children: group.groups.map((child) =>
+      buildGroupTreeNode(child, depth + 1, uuidId, recycleBinUuidId),
+    ),
+    parentUuid,
+    isRecycleBin: recycleBinUuidId !== null && uuidId === recycleBinUuidId,
+    entryCount: group.entries.length,
+  };
+}
+
+/**
+ * Hook recursivo que retorna a árvore inteira de grupos do cofre.
+ * Sempre retorna um array de length 1 (o nó raiz) — o renderer da
+ * sidebar trata o nó raiz como `forceExpanded` (sem chevron).
+ *
+ * Memoizado por `[kdbx, vaultVersion, recycleBinUuidId]`. Re-invalida
+ * sempre que houver mutação in-place do `kdbx` (`vaultVersion`) ou
+ * que a Lixeira for criada/destruída (mudando `recycleBinUuidId`).
+ *
+ * NUNCA retornar derivação inline dentro do selector do Zustand — a
+ * referência mudaria a cada chamada e o `useSyncExternalStore` entraria
+ * em loop. Ver §15 do CLAUDE.md.
+ */
+export function useGroupTree(): GroupTreeNode[] {
+  const kdbx = useVaultStore((s) => s.kdbx);
+  const vaultVersion = useVaultStore((s) => s.vaultVersion);
+  const recycleBinUuidId = useRecycleBinUuidId();
+  return useMemo(() => {
+    if (!kdbx) return [];
+    return [buildGroupTreeNode(kdbx.getDefaultGroup(), 0, null, recycleBinUuidId)];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kdbx, vaultVersion, recycleBinUuidId]);
 }
 
 /**
