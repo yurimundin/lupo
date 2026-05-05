@@ -1,0 +1,158 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Variante Tailwind 4 que ativa classes prefixadas com `dark:` quando há
+   `.dark` em algum ancestral (convenção shadcn/ui). */
+@custom-variant dark (&:is(.dark *));
+
+/* =============================================================================
+   Sistema de tema do Sec.Basis
+   -----------------------------------------------------------------------------
+   Duas camadas de tokens, propositalmente:
+
+   1. Tokens "crus" do Sec.Basis (--bg, --brand-primary, --success, etc.)
+      definidos pela identidade visual cravada na sessão 2.
+   2. Tokens convencionais do shadcn/ui (--background, --primary, --destructive,
+      etc.) montados em cima dos crus. Isso permite que componentes shadcn
+      auto-gerados sigam nossa paleta SEM precisarem ser editados.
+
+   Convenção de uso na UI: prefira as classes Tailwind no padrão shadcn
+   (bg-background, text-foreground, bg-primary, bg-muted, text-muted-foreground,
+   border-border, text-destructive, ring-ring) — elas já resolvem para nossa
+   paleta. As classes específicas do Sec.Basis (bg-brand-accent, bg-success,
+   etc.) ficam reservadas para destaques/semânticas que o shadcn não cobre.
+   ============================================================================= */
+
+:root {
+  /* ----- Camada 1 — tokens crus do Sec.Basis ----- */
+
+  /* Marca */
+  --brand-primary: #4eb1d9;        /* azul Sec — ações, foco, links */
+  --brand-primary-hover: #4abfd9;  /* variação turquesa */
+  --brand-accent: #91f2e9;         /* verde-água — destaques visuais, badges */
+  --brand-tertiary: #c9cbf2;       /* lavanda — ilustrações */
+  --brand-soft: #d0ecf2;           /* apoio claro — fundos sutis no light */
+
+  /* Neutros — light (default) */
+  --bg: #ffffff;
+  --bg-secondary: #f7f9fb;
+  --border-color: #e5eaf0;
+  --text-primary: #1a1d24;
+  --text-secondary: #6b7280;
+
+  /* Semânticas (mesmas em light e dark) */
+  --success: #46a758;
+  --warning: #ffb224;
+  --danger: #e5484d;
+  /* NOTA: --brand-accent (#91f2e9) é destaque visual, NÃO sucesso. */
+
+  /* ----- Camada 2 — tokens shadcn mapeados para os crus ----- */
+
+  --background: var(--bg);
+  --foreground: var(--text-primary);
+  --card: var(--bg);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--brand-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--bg-secondary);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-secondary);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--brand-soft);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
+  --border: var(--border-color);
+  --input: var(--border-color);
+  --ring: var(--brand-primary);
+  --radius: 0.625rem;
+}
+
+/* Modo dark — só os tokens que mudam (Camada 1). A Camada 2 herda
+   automaticamente porque é definida via var(). */
+.dark {
+  --bg: #0f1419;
+  --bg-secondary: #171b22;
+  --border-color: #262c36;
+  --text-primary: #f4f6f8;
+  --text-secondary: #9ca3af;
+  /* Marca, semânticas e --primary-foreground/--destructive-foreground
+     mantêm os mesmos valores em ambos os modos. */
+}
+
+/* =============================================================================
+   @theme inline — expõe os tokens acima como classes utilitárias do Tailwind 4.
+   ============================================================================= */
+@theme inline {
+  /* Tipografia */
+  --font-sans:
+    "Geologica Variable", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  /* Tokens shadcn — geram bg-background, text-foreground, bg-primary,
+     text-primary-foreground, bg-muted, text-muted-foreground, bg-destructive,
+     border-border, ring-ring, etc. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Tokens específicos do Sec.Basis — geram bg-brand-accent, bg-brand-soft,
+     bg-success, text-warning, etc. Usar para destaques/semânticas que o
+     shadcn não cobre. */
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-hover: var(--brand-primary-hover);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-tertiary: var(--brand-tertiary);
+  --color-brand-soft: var(--brand-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  /* Radius — escala derivada de --radius (convenção shadcn). */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+/* =============================================================================
+   Reset/base do app
+   ============================================================================= */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* font-feature-settings: a Geologica não documenta `cv11`/`ss01` — manter
+       default. Reavaliar se a fonte expor stylistic sets úteis. */
+  }
+}

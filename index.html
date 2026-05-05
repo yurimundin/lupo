@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sec.Basis</title>
+    <!--
+      Anti-flicker do tema: aplica `.dark` antes do CSS pintar, espelhando
+      a lógica de `src/lib/theme.ts`. Mantenha as duas em sincronia se
+      mudar a chave do localStorage ou a convenção de classe.
+    -->
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem("sec-basis-theme");
+          var isDark =
+            pref === "dark" ||
+            ((pref === "system" || pref === null) &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (isDark) document.documentElement.classList.add("dark");
+        } catch (e) {
+          /* localStorage indisponível — segue light. */
+        }
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
