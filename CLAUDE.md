@@ -668,3 +668,56 @@ Auto-comportamentos:
   Configurável em `settings.clipboardAutoClearMs`. Se o usuário copiou
   outra coisa antes do timeout, mantemos o que ele copiou.
 - **Auto-ocultar senha**: 10 s após clicar no olho na tela de detalhe.
+
+---
+
+## 12. Identidade visual (logo)
+
+O logo do Sec.Basis foi escolhido fora desta sessão e versionado em
+[assets/secbasis-icon-1024.png](assets/secbasis-icon-1024.png) como fonte
+imutável (1024×1024, RGBA). Os ícones derivados (Windows `.ico`, macOS
+`.icns`, PNGs Microsoft Store, mipmaps Android, AppIcons iOS) ficam em
+[src-tauri/icons/](src-tauri/icons/) e são gerados automaticamente:
+
+```bash
+npx @tauri-apps/cli icon assets/secbasis-icon-1024.png
+```
+
+**Conceito visual:** três pontos brancos centralizados sobre gradiente
+diagonal turquesa (`--brand-primary` `#4EB1D9`) → lavanda
+(`--brand-tertiary` `#C9CBF2`), cantos arredondados estilo iOS. Usa a
+paleta cravada da marca, sem cores estranhas ao sistema.
+
+Para regerar (após alterar o PNG fonte): rodar o comando acima e
+commitar `src-tauri/icons/` junto com o novo `assets/`. NÃO editar
+arquivos individuais em `src-tauri/icons/` à mão.
+
+---
+
+## 13. Histórico Git e marcos
+
+Repositório público: <https://github.com/yurimundin/secbasis>
+
+| Hash | Tipo | Mensagem |
+|---|---|---|
+| `8de660f` | chore | initial scaffolding — tauri v2 + react + tailwind + kdbxweb |
+| `995428a` | feat | argon2, key file support, vault layout and security tooling |
+| `e5a3c02` | chore | add app icon, security policy and contribution guide |
+
+Política de histórico: **NUNCA reescrever** (rebase/squash/force-push) o
+ramo `main`. Se um commit precisar ser corrigido, criar um novo commit
+de correção.
+
+**Marcos atingidos:**
+
+- ✅ Sessão 1: scaffold Tauri + React + dependências base
+- ✅ Sessão 2: Argon2 nativo (Rust) + tema + UI de criar/abrir cofre
+- ✅ Sessão 2.5: build de release validado (Argon2 ~100ms, MSI 3,4 MB)
+- ✅ Sessão 3: tela de cofre aberto (3 painéis, auto-lock, auto-clear,
+  atalhos, key file com memória por cofre, banner informativo)
+- ✅ Sessão 3 adendo: ícone definitivo + arquivos meta (SECURITY,
+  CONTRIBUTING, .gitattributes) + 3 commits no GitHub público
+
+**Próximo:** Sessão 4 — CRUD de entradas (criar/editar/remover), busca
+real (placeholder do Ctrl+K já existe), gerador de senhas standalone,
+e drag-and-drop entre grupos.
