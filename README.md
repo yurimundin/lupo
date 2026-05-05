@@ -54,8 +54,8 @@ versão pública (MVP) será publicada na Microsoft Store após estabilização.
 ### Instalação
 
 ```bash
-git clone https://github.com/<seu-usuario>/sec-basis.git
-cd sec-basis
+git clone https://github.com/yurimundin/secbasis.git
+cd secbasis
 npm install
 npm run tauri dev
 ```
