@@ -1,0 +1,22 @@
+# Normalização de line endings: tudo LF no repo, deixa o cliente
+# converter na hora do checkout se necessário.
+* text=auto eol=lf
+
+# Scripts Windows precisam de CRLF para rodar corretamente.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binários — nunca tentar normalizar.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.icns binary
+*.woff2 binary
+
+# Arquivos sensíveis — binário também (defesa em profundidade caso algum
+# escape do .gitignore por engano).
+*.kdbx binary
+*.keyx binary
+*.key binary
