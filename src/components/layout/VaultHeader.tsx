@@ -2,8 +2,10 @@
 // (placeholder por enquanto — tarefa para Sessão 4), indicador de
 // auto-lock e botão "Bloquear".
 
-import { Lock as LockIcon, Search } from "lucide-react";
+import { Info, Lock as LockIcon, Search } from "lucide-react";
+import { useState } from "react";
 
+import { AboutDialog } from "@/components/AboutDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { requestLockWithGuard } from "@/lib/lock-flow";
@@ -14,6 +16,7 @@ import { AutoLockIndicator } from "./AutoLockIndicator";
 export function VaultHeader() {
   const filePath = useVaultStore((s) => s.filePath);
   const hasUnsavedChanges = useHasUnsavedChanges();
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
     <header className="h-12 shrink-0 flex items-center gap-3 px-4 border-b border-border bg-bg-secondary">
@@ -42,6 +45,16 @@ export function VaultHeader() {
         </span>
       )}
 
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setAboutOpen(true)}
+        aria-label="Sobre o Sec.Basis"
+        title="Sobre o Sec.Basis"
+      >
+        <Info />
+      </Button>
+
       <AutoLockIndicator />
 
       <Button
@@ -53,6 +66,8 @@ export function VaultHeader() {
         <LockIcon />
         Bloquear
       </Button>
+
+      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
     </header>
   );
 }

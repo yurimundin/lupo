@@ -1442,3 +1442,71 @@ Adicionar diferenciação visual seria redundante e poluiria a lista —
 em uma sessão de bulk restore (caso de uso comum), o usuário precisa
 ler título/username/URL com a mesma facilidade que em qualquer outro
 grupo.
+
+---
+
+## 23. Versionamento e tela About (Sessão 7)
+
+**Esquema:** Semantic Versioning (SemVer) —
+`MAJOR.MINOR.PATCH[-pre-release]`.
+
+**Versão atual:** `0.1.0-alpha`. Indica explicitamente pre-release.
+Convenção de bumps:
+
+- `0.1.x-alpha` → fixes durante alpha
+- `0.2.0-alpha` → features novas durante alpha
+- `0.1.0-beta` → quando virar beta público
+- `1.0.0` → primeira release estável (Roadmap Fase 1 100% completo)
+
+**Source of truth:** `src-tauri/tauri.conf.json` campo `version`
+(estrutura flat no Tauri v2 — NÃO há `package.version` aninhado).
+`package.json` mantém versão sincronizada manualmente. Bumps futuros
+exigem atualizar AMBOS os arquivos.
+
+### Tela About
+
+Componente
+[src/components/AboutDialog.tsx](src/components/AboutDialog.tsx).
+Conteúdo estático: logo (128×128 servido de `public/secbasis-logo.png`,
+exibido a 64px), nome do app, versão (via `useAppVersion`), descrição
+curta, 3 linhas de info (site oficial, código-fonte, licença), botão
+Fechar.
+
+**Sem chamadas de rede** — alinhado com princípio offline-first. Links
+externos abrem no navegador padrão via `@tauri-apps/plugin-shell`
+(mesmo padrão de `EntryDetail` para abrir URLs de entries —
+capability `shell:allow-open` já existe desde a Sessão 3).
+
+**Acesso:** botão `Info` (ícone Lucide) no
+[VaultHeader](src/components/layout/VaultHeader.tsx), entre o
+indicador "● não salvo" e o `AutoLockIndicator`. Tooltip
+"Sobre o Sec.Basis". `aria-label` espelha o tooltip.
+
+**Hook:** [useAppVersion](src/hooks/useAppVersion.ts) carrega a versão
+assíncrona via `@tauri-apps/api/app.getVersion()`. Estado inicial é
+string vazia — o modal renderiza "Versão ..." enquanto resolve. Em
+erro de IPC (cenário improvável), loga e mantém vazio.
+
+### Logo do app no `public/`
+
+`public/secbasis-logo.png` é cópia direta de
+`src-tauri/icons/128x128.png`. Quando o ícone fonte for atualizado
+(via `npx @tauri-apps/cli icon assets/secbasis-icon-1024.png`,
+descrito na §13), **lembrar de re-copiar** para `public/` ou o logo do
+About fica desincronizado. TODO Sessão futura: script de build que
+faça essa cópia automaticamente.
+
+### Decisões deliberadamente fora do MVP
+
+- **Sem build hash, sem build date.** Adicionar quando a dor real for
+  identificada (ex.: usuário reporta bug e precisamos saber qual
+  build). Princípio: instrumentação sob demanda, não preventiva.
+- **Sem "verificar atualizações".** Conflitaria com o princípio
+  offline-first. Distribuição é via download direto (.msi/.exe) do
+  site oficial — usuário gerencia atualização manualmente.
+- **Sem atalho de teclado.** Tela About é consultada raramente; botão
+  visível no header é suficiente.
+- **Sem créditos pessoais ("criado por Yuri").** Decisão UX — modal
+  About do MVP foca em produto, não em autoria.
+- **Sem tag git `v0.1.0-alpha`** ainda. Tag será criada na Sessão de
+  release (quando houver MSI/EXE empacotado distribuído publicamente).
