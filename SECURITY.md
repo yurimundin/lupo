@@ -12,7 +12,7 @@ recomendamos [KeePassXC](https://keepassxc.org/).
 Se você descobriu uma vulnerabilidade de segurança no Sec.Basis,
 **NÃO abra uma issue pública**. Reporte de forma responsável:
 
-- **E-mail:** `[PLACEHOLDER — substituir após criação manual de e-mail dedicado]`
+- **E-mail:** security@basis.app.br
 - **Tempo de resposta esperado:** confirmação de recebimento em até **48 horas**, primeira análise em até **7 dias**.
 - **PGP key:** _TODO — adicionar quando o e-mail dedicado for configurado._
 
@@ -56,7 +56,7 @@ we recommend [KeePassXC](https://keepassxc.org/).
 If you discovered a security vulnerability in Sec.Basis, **DO NOT open a
 public issue**. Report it responsibly:
 
-- **Email:** `[PLACEHOLDER — to be replaced once the dedicated mailbox is set up]`
+- **Email:** security@basis.app.br
 - **Expected response time:** acknowledgement within **48 hours**, initial analysis within **7 days**.
 - **PGP key:** _TODO — to be added once the dedicated email is configured._
 
