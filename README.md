@@ -98,7 +98,7 @@ Princípios de design que guiam o projeto:
   - 🚧 Busca em tempo real
   - 🚧 Subgrupos expansíveis na sidebar
   - 🚧 Restaurar/esvaziar Lixeira
-  - 🚧 Empacotamento Windows (Microsoft Store)
+  - 🚧 Empacotamento e distribuição Windows (instalador .msi/.exe via site oficial)
 
 - **Fase 2:** YubiKey, TOTP, anexos, importação Bitwarden/1Password/LastPass,
   auditoria de senhas.
