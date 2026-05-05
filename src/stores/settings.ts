@@ -42,6 +42,18 @@ interface SettingsState {
    * NTFS já oferece pra leitura do APPDATA do usuário).
    */
   keyFilePathByVault: Record<string, string>;
+  /**
+   * Caminho do último cofre que o usuário abriu com sucesso. Persistido
+   * entre sessões via Zustand persist → localStorage. Permite o app pré-
+   * preencher a tela de unlock no boot, sem o usuário ter que selecionar
+   * o arquivo de novo a cada vez. Mesma natureza de "metadata operacional"
+   * de `keyFilePathByVault` (ver §6 CLAUDE.md): caminho de arquivo não é
+   * segredo, ACL do APPDATA é o limite de segurança real.
+   *
+   * Limpo silenciosamente quando o boot detecta que o arquivo sumiu do
+   * disco (cair em OpenCreateScreen sem ruído).
+   */
+  lastOpenedVaultPath: string | null;
 
   setAutoLockMs(ms: number): void;
   setClipboardAutoClearMs(ms: number): void;
@@ -50,6 +62,7 @@ interface SettingsState {
   rememberKeyFile(vaultPath: string, keyFilePath: string): void;
   forgetKeyFile(vaultPath: string): void;
   getRememberedKeyFile(vaultPath: string): string | null;
+  setLastOpenedVaultPath(path: string | null): void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -59,6 +72,7 @@ export const useSettingsStore = create<SettingsState>()(
       clipboardAutoClearMs: DEFAULT_CLIPBOARD_AUTO_CLEAR_MS,
       seenKeyFileBanner: {},
       keyFilePathByVault: {},
+      lastOpenedVaultPath: null,
 
       setAutoLockMs: (autoLockMs) => set({ autoLockMs }),
       setClipboardAutoClearMs: (clipboardAutoClearMs) =>
@@ -87,6 +101,7 @@ export const useSettingsStore = create<SettingsState>()(
         }),
       getRememberedKeyFile: (vaultPath) =>
         get().keyFilePathByVault[vaultPath] ?? null,
+      setLastOpenedVaultPath: (path) => set({ lastOpenedVaultPath: path }),
     }),
     { name: "sec-basis-settings" },
   ),

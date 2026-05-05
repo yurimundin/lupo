@@ -1510,3 +1510,121 @@ faça essa cópia automaticamente.
   About do MVP foca em produto, não em autoria.
 - **Sem tag git `v0.1.0-alpha`** ainda. Tag será criada na Sessão de
   release (quando houver MSI/EXE empacotado distribuído publicamente).
+
+---
+
+## 24. Tela de unlock — redesign + auto-open último cofre (Sessão 8)
+
+### Logo + hierarquia visual unificada
+
+Tanto [OpenCreateScreen](src/components/vault/OpenCreateScreen.tsx)
+quanto [UnlockScreen](src/components/vault/UnlockScreen.tsx) compartilham
+agora a mesma estrutura visual:
+
+```
+┌─ container ─────────────────────┐
+│  [Logo 96×96]                   │  gap-4
+│  Sec.Basis (text-3xl bold)      │
+│  Tagline (text-sm muted)        │
+│                                 │  gap-8
+│  ┌─ Card (max-w-460) ──────┐    │
+│  │  p-8 (32px padding)      │    │  conteúdo do card
+│  └──────────────────────────┘    │
+│                                 │  gap-8
+│  Footer (text-xs muted)         │
+└─────────────────────────────────┘
+```
+
+**Logo:** `<img src="/secbasis-logo.png" />` 96×96px (`h-24 w-24`)
+substitui o ícone `<Lock />` pequeno usado até a Sessão 7. Fonte
+servida do `public/secbasis-logo.png` (cópia de
+`src-tauri/icons/128x128.png`, ver §23).
+
+**Sistema de espaçamento Tailwind cravado:**
+- `gap-2` (8px) — label → input
+- `gap-4` (16px) — entre subitens (logo → título)
+- `space-y-6` (24px) — entre seções dentro do form (file picker /
+  senha / key file / botão)
+- `gap-8` (32px) — header → card → footer
+- `p-8` (32px) — padding interno do card
+
+### Diferença OpenCreateScreen vs UnlockScreen
+
+- **OpenCreateScreen:** card COM tabs ("Abrir cofre" / "Criar cofre").
+  Renderizado quando NÃO há cofre persistido nem path em RAM. Tagline
+  "Gerenciador de senhas offline".
+- **UnlockScreen:** card SEM tabs (foco único: desbloquear AQUELE
+  cofre). Renderizado quando há `lastFilePath` em RAM (auto-lock /
+  Ctrl+L) OU quando o boot hidratou o caminho do `lastOpenedVaultPath`
+  persistido (ver auto-open abaixo). Tagline "Cofre bloqueado". Link
+  discreto "Voltar para a tela inicial" como escape hatch.
+
+### Auto-open do último cofre
+
+**Persistência via `useSettingsStore`** (não Rust + JSON). Campo
+`lastOpenedVaultPath: string | null` em
+[src/stores/settings.ts](src/stores/settings.ts), persistido via
+Zustand `persist` middleware → `localStorage` chave
+`sec-basis-settings`.
+
+**Mesma natureza de "metadata operacional"** documentada em §6 do
+CLAUDE.md (path do key file por cofre): caminho de arquivo NÃO é
+segredo, ACL do APPDATA é o limite de segurança real. Criptografar
+seria security theater.
+
+**Trade-off avaliado (e rejeitado):** spec original sugeria
+`preferences.rs` Rust + arquivo JSON em `appData()/preferences.json`.
+Funcionalmente idêntico, mas ~80% mais código (Rust + comando Tauri +
+capability nova + plugin-fs novo) sem benefício real. Recomendação A
+escolhida: localStorage via padrão já estabelecido.
+
+### Fluxo de boot
+
+1. App boota. Vault store: `kdbx=null`, `lastFilePath=null` (zerados
+   no construtor — sem persist).
+2. Settings store hidrata sincronicamente do localStorage. Se
+   `lastOpenedVaultPath` existe, está disponível imediatamente.
+3. `useEffect` em [App.tsx](src/App.tsx) (uma vez no mount):
+   - Lê `lastOpenedVaultPath` do settings.
+   - Verifica `fileExists(path)` via comando Tauri
+     [file_exists](src-tauri/src/lib.rs).
+   - Se existe: chama `useVaultStore.hydrateLastVault(path, keyFile)`
+     que popula `lastFilePath` (e `lastKeyFilePath` se houver memória
+     de key file pra esse cofre).
+   - Se não existe: limpa `lastOpenedVaultPath` em silêncio (cofre
+     foi movido/deletado fora do app).
+4. Re-render. App.tsx switch detecta `lastFilePath !== null` →
+   renderiza `<UnlockScreen />` com path já fixado e foco no campo
+   senha.
+
+**Resultado para o usuário:** abre o app, digita só a senha mestra,
+desbloqueia. Sem ter que selecionar o arquivo de novo a cada vez.
+
+### Pontos onde `setLastOpenedVaultPath` é chamado
+
+- [OpenVaultTab](src/components/vault/OpenVaultTab.tsx) após
+  `setVaultInStore` (sucesso de abertura)
+- [CreateVaultTab](src/components/vault/CreateVaultTab.tsx) após
+  `setVaultInStore` (sucesso de criação)
+- [UnlockScreen](src/components/vault/UnlockScreen.tsx) após `unlock`
+  (re-afirma invariante; em teoria já está setado pelo passo anterior
+  na sessão, mas redundância barata)
+
+E é **limpado** quando o usuário clica em "Voltar para a tela inicial"
+no UnlockScreen — intent explícito de abandonar o auto-load atual.
+
+### Novo action `hydrateLastVault` no vault store
+
+[vault.ts](src/stores/vault.ts) ganhou
+`hydrateLastVault(filePath, keyFilePath)` — popula `lastFilePath` e
+`lastKeyFilePath` SEM exigir uma instância de Kdbx. Usado APENAS no
+boot, a partir do path persistido. Outros caminhos continuam usando
+`setVault` (cria) e `unlock` (desbloqueia) que já tratam corretamente
+quando há um Kdbx ativo.
+
+### Fora de escopo (Sessão futura)
+
+- Lista de N cofres recentes (apenas o último é persistido)
+- "Esquecer este cofre" sem ter que abrir e clicar voltar
+- Persistir auto-lock state entre boots (intencionalmente NÃO — o
+  auto-lock é um evento de sessão, não estado durável)

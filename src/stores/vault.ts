@@ -135,6 +135,19 @@ interface VaultState {
    * setar campo via `entry.fields.set`, etc.).
    */
   incrementVaultVersion(): void;
+
+  /**
+   * Hidrata `lastFilePath` (e opcionalmente `lastKeyFilePath`) sem
+   * exigir uma instância de `Kdbx`. Usado APENAS no boot do app, a
+   * partir do `lastOpenedVaultPath` persistido em `settings.ts`. O
+   * resultado é que o switch do `App.tsx` cai em `<UnlockScreen />`
+   * automaticamente quando há cofre lembrado, sem o usuário precisar
+   * selecionar o arquivo de novo.
+   *
+   * NÃO usar em outros caminhos — `setVault` e `unlock` já tratam o
+   * `lastFilePath` corretamente quando há um Kdbx ativo.
+   */
+  hydrateLastVault(filePath: string, keyFilePath: string | null): void;
 }
 
 export const useVaultStore = create<VaultState>((set, get) => ({
@@ -291,6 +304,12 @@ export const useVaultStore = create<VaultState>((set, get) => ({
 
   incrementVaultVersion: () =>
     set((state) => ({ vaultVersion: state.vaultVersion + 1 })),
+
+  hydrateLastVault: (filePath, keyFilePath) =>
+    set({
+      lastFilePath: filePath,
+      lastKeyFilePath: keyFilePath,
+    }),
 }));
 
 // ---------------------------------------------------------------------------

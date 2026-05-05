@@ -171,6 +171,10 @@ export function OpenVaultTab() {
         forgetKeyFileSetting(filePath);
       }
 
+      // Persistir caminho como "último cofre" pra auto-load no próximo
+      // boot (ver §24 do CLAUDE.md).
+      useSettingsStore.getState().setLastOpenedVaultPath(filePath);
+
       console.info("[Sec.Basis] cofre aberto:", fileName, db.meta.name);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -186,7 +190,7 @@ export function OpenVaultTab() {
     (!useKeyFile || keyFilePath !== null);
 
   return (
-    <form onSubmit={handleUnlock} className="space-y-4">
+    <form onSubmit={handleUnlock} className="space-y-6">
       <div className="space-y-2">
         <Label>Arquivo do cofre</Label>
         {filePath ? (

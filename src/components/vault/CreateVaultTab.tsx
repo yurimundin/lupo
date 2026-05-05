@@ -197,6 +197,10 @@ export function CreateVaultTab() {
       if (usedKeyFilePath) {
         rememberKeyFileSetting(vaultPath, usedKeyFilePath);
       }
+
+      // Persistir caminho como "último cofre" pra auto-load no próximo
+      // boot (ver §24 do CLAUDE.md).
+      useSettingsStore.getState().setLastOpenedVaultPath(vaultPath);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -205,7 +209,7 @@ export function CreateVaultTab() {
   }
 
   return (
-    <form onSubmit={handleCreate} className="space-y-4">
+    <form onSubmit={handleCreate} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="create-name">Nome do cofre</Label>
         <Input

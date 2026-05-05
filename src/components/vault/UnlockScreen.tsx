@@ -1,25 +1,25 @@
 // Tela de desbloqueio simplificada — aparece quando o usuário bloqueou
-// (ou auto-lock disparou) mas o app ainda lembra qual era o cofre.
+// (ou auto-lock disparou) mas o app ainda lembra qual era o cofre. A
+// partir da Sessão 8, também aparece no boot quando há cofre persistido
+// em `settings.lastOpenedVaultPath` e o arquivo ainda existe no disco.
 // Mostra o nome do arquivo já fixado e pede só credenciais.
 //
 // Reusa a mesma `openVault` da Tarefa 3, e populariza o store
 // diretamente. Se há key file lembrado, pré-preenche; se sumiu do disco,
 // mostra warning e abre picker uma vez (mesmo padrão do `OpenVaultTab`).
+//
+// Sessão 8: redesign visual com logo Sec.Basis 96px + hierarquia
+// unificada com OpenCreateScreen (mesmo header, mesmo footer, mesmo
+// container). Card sem tabs (UnlockScreen é um fluxo focado: abrir
+// AQUELE cofre, não escolher entre abrir/criar).
 
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import {
-  Eye,
-  EyeOff,
-  FileLock2,
-  Key,
-  Loader2,
-  Lock as LockIcon,
-} from "lucide-react";
+import { Eye, EyeOff, FileLock2, Key, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,9 +32,21 @@ export function UnlockScreen() {
   const lastFilePath = useVaultStore((s) => s.lastFilePath);
   const lastKeyFilePath = useVaultStore((s) => s.lastKeyFilePath);
   const unlock = useVaultStore((s) => s.unlock);
-  const reset = useVaultStore((s) => s.reset);
+  const resetVault = useVaultStore((s) => s.reset);
   const rememberKeyFileSetting = useSettingsStore((s) => s.rememberKeyFile);
   const forgetKeyFileSetting = useSettingsStore((s) => s.forgetKeyFile);
+  const setLastOpenedVaultPath = useSettingsStore(
+    (s) => s.setLastOpenedVaultPath,
+  );
+
+  // Quando o usuário escolhe "Abrir outro cofre", limpa também o
+  // caminho persistido — assim o próximo boot do app NÃO traz esse
+  // mesmo cofre de volta automaticamente. Reflete o intent do botão
+  // ("voltar para a tela inicial" implica abandonar o auto-load atual).
+  function handleBackToInitial() {
+    setLastOpenedVaultPath(null);
+    resetVault();
+  }
 
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -111,6 +123,12 @@ export function UnlockScreen() {
       ) {
         forgetKeyFileSetting(lastFilePath);
       }
+
+      // Reforça o caminho como "último cofre" pra auto-load no próximo
+      // boot. Em teoria já está setado (cofre só chega ao UnlockScreen
+      // após ter passado pelo OpenVaultTab/CreateVaultTab que setam),
+      // mas redundância barata garante invariante. Ver §24 CLAUDE.md.
+      useSettingsStore.getState().setLastOpenedVaultPath(lastFilePath);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -125,26 +143,37 @@ export function UnlockScreen() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
-      <div className="w-full max-w-[440px] space-y-6">
-        <header className="flex items-center justify-center gap-2">
-          <LockIcon className="text-primary" />
-          <h1 className="text-2xl font-semibold tracking-tight">Sec.Basis</h1>
+      <div className="w-full max-w-[460px] flex flex-col items-center gap-8">
+        <header className="flex flex-col items-center gap-4">
+          <img
+            src="/secbasis-logo.png"
+            alt="Sec.Basis logo"
+            className="h-24 w-24"
+          />
+          <div className="text-center">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Sec.Basis
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Cofre bloqueado
+            </p>
+          </div>
         </header>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Cofre bloqueado</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleUnlock} className="space-y-4">
-              <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2">
-                <FileLock2 className="text-primary" />
-                <span
-                  className="flex-1 truncate text-sm font-medium"
-                  title={lastFilePath}
-                >
-                  {baseName(lastFilePath)}
-                </span>
+        <Card className="w-full">
+          <CardContent className="p-8">
+            <form onSubmit={handleUnlock} className="space-y-6">
+              <div className="space-y-2">
+                <Label>Cofre</Label>
+                <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2.5">
+                  <FileLock2 className="text-primary size-4 shrink-0" />
+                  <span
+                    className="flex-1 truncate text-sm font-medium"
+                    title={lastFilePath}
+                  >
+                    {baseName(lastFilePath)}
+                  </span>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -269,7 +298,7 @@ export function UnlockScreen() {
 
               <button
                 type="button"
-                onClick={reset}
+                onClick={handleBackToInitial}
                 className="w-full text-xs text-muted-foreground hover:text-foreground"
               >
                 Voltar para a tela inicial (abrir outro cofre)
@@ -277,6 +306,10 @@ export function UnlockScreen() {
             </form>
           </CardContent>
         </Card>
+
+        <p className="text-xs text-muted-foreground text-center">
+          Compatível com KeePass / KeePassXC · Offline-first
+        </p>
       </div>
     </div>
   );
