@@ -17,6 +17,7 @@
 // =============================================================================
 
 import * as kdbxweb from "kdbxweb";
+import { useMemo } from "react";
 import { create } from "zustand";
 
 import type { KdbxEntry, KdbxGroup, Kdbx } from "kdbxweb";
@@ -43,6 +44,17 @@ interface VaultState {
   selectedGroupUuid: string | null;
   /** UUID da entrada selecionada na lista. */
   selectedEntryUuid: string | null;
+  /**
+   * Contador incrementado a cada mutação in-place do `kdbx` (entries
+   * adicionadas/editadas/movidas, fields alterados, etc.). Selectors que
+   * derivam arrays/objetos de dentro do kdbx dependem dele em `useMemo`
+   * para invalidar quando o conteúdo muda — a referência do `kdbx`
+   * sozinha não muda em mutações in-place.
+   *
+   * Quem mexe no kdbx via APIs da kdbxweb DEVE chamar
+   * `incrementVaultVersion()` em seguida. Ver §15 do CLAUDE.md.
+   */
+  vaultVersion: number;
 
   setVault(kdbx: Kdbx, filePath: string, keyFilePath: string | null): void;
   lock(): void;
@@ -50,6 +62,13 @@ interface VaultState {
   selectGroup(uuid: string): void;
   selectEntry(uuid: string | null): void;
   reset(): void;
+
+  /**
+   * Incrementa `vaultVersion`. Chamar SEMPRE após qualquer mutação
+   * in-place do `kdbx` (criar/editar/mover/deletar entry ou grupo,
+   * setar campo via `entry.fields.set`, etc.).
+   */
+  incrementVaultVersion(): void;
 }
 
 export const useVaultStore = create<VaultState>((set) => ({
@@ -59,6 +78,7 @@ export const useVaultStore = create<VaultState>((set) => ({
   lastKeyFilePath: null,
   selectedGroupUuid: null,
   selectedEntryUuid: null,
+  vaultVersion: 0,
 
   setVault: (kdbx, filePath, keyFilePath) =>
     set({
@@ -100,6 +120,9 @@ export const useVaultStore = create<VaultState>((set) => ({
       selectedGroupUuid: null,
       selectedEntryUuid: null,
     }),
+
+  incrementVaultVersion: () =>
+    set((state) => ({ vaultVersion: state.vaultVersion + 1 })),
 }));
 
 // ---------------------------------------------------------------------------
@@ -137,27 +160,44 @@ export function useCurrentEntry(): KdbxEntry | null {
   });
 }
 
+/**
+ * Lista de entradas do grupo selecionado.
+ *
+ * Implementação: o selector do Zustand retorna apenas referências/primitivos
+ * estáveis (`kdbx`, `selectedGroupUuid`, `vaultVersion`). O array em si é
+ * derivado em `useMemo`. Antes era inline no selector e criava array novo
+ * a cada chamada, causando loop infinito do `useSyncExternalStore`. Ver
+ * §15 do CLAUDE.md.
+ */
 export function useEntriesOfCurrentGroup(): KdbxEntry[] {
-  return useVaultStore((s) => {
-    if (!s.kdbx || !s.selectedGroupUuid) return [];
-    const group = findGroupByUuidId(s.kdbx.getDefaultGroup(), s.selectedGroupUuid);
+  const kdbx = useVaultStore((s) => s.kdbx);
+  const selectedGroupUuid = useVaultStore((s) => s.selectedGroupUuid);
+  const vaultVersion = useVaultStore((s) => s.vaultVersion);
+  return useMemo(() => {
+    if (!kdbx || !selectedGroupUuid) return [];
+    const group = findGroupByUuidId(kdbx.getDefaultGroup(), selectedGroupUuid);
     return group?.entries ?? [];
-  });
+  }, [kdbx, selectedGroupUuid, vaultVersion]);
 }
 
 /**
  * Hook que retorna a lista de grupos diretos do cofre (filhos do grupo
  * raiz). Não inclui sub-sub-grupos por enquanto — render flat conforme
  * Tarefa 5 da Sessão 3.
+ *
+ * Mesmo padrão do `useEntriesOfCurrentGroup`: lógica em `useMemo` fora do
+ * selector para não criar array novo a cada chamada.
  */
 export function useTopLevelGroups(): KdbxGroup[] {
-  return useVaultStore((s) => {
-    if (!s.kdbx) return [];
-    const root = s.kdbx.getDefaultGroup();
+  const kdbx = useVaultStore((s) => s.kdbx);
+  const vaultVersion = useVaultStore((s) => s.vaultVersion);
+  return useMemo(() => {
+    if (!kdbx) return [];
+    const root = kdbx.getDefaultGroup();
     // Inclui o próprio root como primeiro item — corresponde ao "Cofre" raiz
     // que o usuário verá. Subgrupos vêm em seguida.
     return [root, ...root.groups];
-  });
+  }, [kdbx, vaultVersion]);
 }
 
 /**

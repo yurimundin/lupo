@@ -671,7 +671,73 @@ Auto-comportamentos:
 
 ---
 
-## 12. Identidade visual (logo)
+## 12. Bug do scanner Tailwind 4 — arbitrary `grid-cols` não detectado
+
+**Sintoma:** a classe `grid-cols-[200px_280px_1fr]` no JSX do
+[VaultLayout.tsx](src/components/layout/VaultLayout.tsx) NÃO gerou a regra
+`grid-template-columns` no CSS final compilado pelo Tailwind 4. Resultado:
+o `<div>` continuava `display: grid` mas sem `grid-template-columns`
+definido — colunas viraram `auto` e colapsaram para a largura mínima do
+conteúdo. Visualmente: as três colunas (sidebar 200px, lista 280px,
+detalhe 1fr) sumiram, restando apenas as marcas verticais coloridas dos
+avatares (size-8 = 32px) da `EntryList` no canto esquerdo da janela.
+
+**Causa raiz:** o scanner estático do Tailwind 4 falha em detectar
+arbitrary values complexos com **múltiplos valores separados por
+underscore-como-espaço** quando aparecem como classe direta (sem variant
+prefixo). Em testes empíricos durante a investigação, classes mais
+complexas dentro de variants compostos (`has-[...]:grid-cols-[auto_1fr]`)
+parecem ser detectadas — mas a regra exata do parser não foi confirmada.
+
+**Mitigação adotada (Opção A):** usar `style={{ gridTemplateColumns:
+"..." }}` inline para garantir aplicação determinística.
+
+```tsx
+<div
+  className="flex-1 grid overflow-hidden"
+  style={{ gridTemplateColumns: "200px 280px 1fr" }}
+>
+```
+
+Custo: 1 linha extra. Ganho: zero dependência do detector estático;
+funciona deterministicamente em qualquer versão futura do Tailwind.
+
+**Princípio derivado:**
+
+> Para CSS estrutural crítico (layouts), preferir `style` inline sobre
+> classes Tailwind arbitrárias. Para CSS de adorno (cores, padding,
+> tipografia), classes Tailwind continuam sendo o padrão.
+
+**Bug latente desde a Sessão 3** (quando o `VaultLayout` foi criado).
+Descoberto na Sessão 4 quando o layout foi exercitado por usuário humano
+pela primeira vez — Tarefa 11 da Sessão 3 ficou em "modo de espera" e o
+Yuri fechou a janela sem testar criar/abrir cofre, então o `VaultLayout`
+nunca tinha sido renderizado de fato.
+
+**Ônus de manutenção futuro:** ao introduzir classes Tailwind arbitrárias
+**estruturais** (que afetam layout principal, não adorno), validar que a
+regra apareceu no CSS gerado:
+
+```bash
+npx vite build
+grep -E "<sua-regra-esperada>" dist/assets/index-*.css
+```
+
+Se vazio, trocar por `style` inline.
+
+**Auditoria de outros usos arbitrários (Sessão 4):**
+- ✅ Sizing simples (`max-w-[440px]`, `h-[calc(...)]`, `ring-[3px]`,
+  etc.): detectados sem problema.
+- ⚠️ 3 ocorrências em componentes shadcn (`alert.tsx`, `card.tsx`) usam
+  o padrão `has-...:grid-cols-[auto_1fr]` dentro de variants
+  condicionais. Visualmente OK no estado atual (OpenCreateScreen
+  renderiza Card sem regressão), mas marcado como dívida latente para
+  investigação se algum bug visual aparecer nesses componentes no
+  futuro.
+
+---
+
+## 13. Identidade visual (logo)
 
 O logo do Sec.Basis foi escolhido fora desta sessão e versionado em
 [assets/secbasis-icon-1024.png](assets/secbasis-icon-1024.png) como fonte
@@ -694,7 +760,7 @@ arquivos individuais em `src-tauri/icons/` à mão.
 
 ---
 
-## 13. Histórico Git e marcos
+## 14. Histórico Git e marcos
 
 Repositório público: <https://github.com/yurimundin/secbasis>
 
@@ -721,3 +787,129 @@ de correção.
 **Próximo:** Sessão 4 — CRUD de entradas (criar/editar/remover), busca
 real (placeholder do Ctrl+K já existe), gerador de senhas standalone,
 e drag-and-drop entre grupos.
+
+---
+
+## 15. Selectors do Zustand e mutações in-place do kdbxweb
+
+**Regra fundamental:** selectors do Zustand devem retornar **primitivos
+ou referências estáveis**. NUNCA criar `array`/`object` novo dentro do
+selector.
+
+### Por que
+
+Zustand notifica re-render quando o resultado do selector muda
+**comparado com `Object.is`**. Como `Object.is(a, b)` é `false` para
+arrays/objetos diferentes (mesmo com conteúdo idêntico), criar `[]`/`{}`
+inline no selector dispara loop infinito do `useSyncExternalStore`:
+
+```
+selector roda → cria array novo → Object.is === false →
+  Zustand re-renderiza → selector roda → cria array novo → ... ∞
+```
+
+Sintoma típico: console mostra `"The result of getSnapshot should be
+cached to avoid an infinite loop"` + `"Maximum update depth exceeded"`,
+e o componente afetado renderiza tela vazia (React aborta árvore).
+
+### Padrões corretos
+
+**Opção A (preferida) — `useMemo` no consumidor (ou no hook wrapper):**
+o selector retorna apenas o "raw state" (ref/primitivo); a derivação
+acontece em `useMemo`.
+
+```ts
+export function useTopLevelGroups(): KdbxGroup[] {
+  const kdbx = useVaultStore((s) => s.kdbx);
+  const vaultVersion = useVaultStore((s) => s.vaultVersion);
+  return useMemo(() => {
+    if (!kdbx) return [];
+    const root = kdbx.getDefaultGroup();
+    return [root, ...root.groups];
+  }, [kdbx, vaultVersion]);
+}
+```
+
+**Opção B — `useShallow`** (de `zustand/shallow`): faz comparação
+shallow no resultado do selector. Útil quando você precisa de um
+objeto/array com várias chaves do state:
+
+```ts
+import { useShallow } from "zustand/shallow";
+const { a, b, c } = useVaultStore(useShallow((s) => ({
+  a: s.a, b: s.b, c: s.c
+})));
+```
+
+**Opção C — retornar primitivo**: para hooks que são "consultas
+booleanas" (`useIsLocked`, `useHasUnsavedChanges`), sempre derivar para
+`boolean`/`string`/`number` e retornar isso. Comparação com `Object.is`
+estabiliza naturalmente.
+
+### `vaultVersion` — invalidação para mutações in-place
+
+A `kdbxweb` muta o `Kdbx` **in-place** (`entry.fields.set(...)`,
+`group.entries.push(...)`, `db.move(...)`, `db.createEntry(...)`). A
+referência do objeto `kdbx` NÃO muda, então `useMemo([kdbx])` não
+invalida e a UI não reflete a mutação.
+
+**Solução:** contador `vaultVersion: number` no store, incrementado
+após **cada mutação**. Selectors que derivam de dentro do kdbx dependem
+de `[kdbx, vaultVersion]` no `useMemo`.
+
+```ts
+// Na mutação:
+entry.fields.set("Title", "Novo título");
+useVaultStore.getState().incrementVaultVersion();
+```
+
+**Princípio derivado:** APIs da `kdbxweb` são imperativas e mutáveis,
+mas a UI do Sec.Basis é reativa via `vaultVersion`. Toda função que
+mexe no kdbx deve responsabilizar-se por incrementar o contador antes
+de retornar.
+
+### Histórico do bug
+
+- **Origem:** Sessão 3, criação do `vault.ts`. `useTopLevelGroups`
+  retornava `[root, ...root.groups]` inline; `useEntriesOfCurrentGroup`
+  retornava `group?.entries ?? []` (criava `[]` novo no fallback).
+- **Latente:** todo o fluxo do `VaultLayout` na Sessão 3 — Tarefa 11
+  ficou em "modo de espera" e a janela foi fechada sem o Yuri criar/
+  abrir cofre real, então o `VaultLayout` nunca renderizou de verdade.
+- **Descoberta:** Sessão 4, ao exercitar o `VaultLayout` fim-a-fim
+  durante validação visual da Tarefa 3 — `GroupSidebar` lançou
+  `Maximum update depth exceeded` e a árvore React abortou para tela
+  vazia.
+- **Mitigação:** refatoração descrita acima + introdução de
+  `vaultVersion` como infra para Tarefas 6/7 da Sessão 4.
+
+---
+
+## 16. Regra de validação visual obrigatória
+
+Toda sessão que cria ou altera componentes de UI **deve terminar com
+validação visual humana** antes de fechar. Não é opcional, não é "fica
+para depois", não é "valido na próxima sessão".
+
+**Razões:**
+
+- Bugs estruturais de layout não aparecem em `tsc --noEmit`,
+  `cargo check`, ou `vite build`.
+- Erros de runtime React só aparecem no DevTools do webview, não no
+  stdout do `tauri dev`.
+- Selectors mal-formados causam loops invisíveis para análise estática.
+
+Se o usuário humano fechar a sessão sem validar visualmente, registrar
+como "validação pendente" abaixo, e a próxima sessão DEVE começar
+fazendo essa validação antes de qualquer trabalho novo.
+
+### Histórico de validações pendentes
+
+- **Sessão 3, Tarefa 11:** validação visual fechada sem completar. Yuri
+  fechou a janela sem testar criar/abrir cofre real. Consequência: dois
+  bugs estruturais ficaram latentes e só foram descobertos na Sessão 4
+  ao exercitar o `VaultLayout` fim-a-fim:
+  1. Bug do scanner Tailwind 4 com `grid-cols-[200px_280px_1fr]` —
+     resolvido com `style` inline (ver §12).
+  2. Loop infinito por selectors do Zustand retornando arrays novos —
+     resolvido com `useMemo` + `vaultVersion` (ver §15).
