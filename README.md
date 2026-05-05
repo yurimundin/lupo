@@ -94,10 +94,9 @@ Princípios de design que guiam o projeto:
   - ✅ Gerador criptográfico de senhas
   - ✅ Auto-lock e auto-clear de clipboard
   - ✅ Persistência atômica com backup `.kdbx.bak`
-  - ✅ Soft-delete via Recycle Bin (compatível com KeePass)
+  - ✅ Ciclo de vida completo da Lixeira (mover, restaurar, esvaziar — compatível com KeePass)
   - 🚧 Busca em tempo real
   - 🚧 Subgrupos expansíveis na sidebar
-  - 🚧 Restaurar/esvaziar Lixeira
   - 🚧 Empacotamento e distribuição Windows (instalador .msi/.exe via site oficial)
 
 - **Fase 2:** YubiKey, TOTP, anexos, importação Bitwarden/1Password/LastPass,

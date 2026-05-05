@@ -769,6 +769,11 @@ Repositório público: <https://github.com/yurimundin/secbasis>
 
 | Hash | Tipo | Descrição |
 |---|---|---|
+| `a762eb3` | feat | polish recycle bin UX (i18n + empty state) (Tarefa 3 da S5) |
+| `e36c275` | feat | empty recycle bin (hard-delete all trashed entries) (Tarefa 2) |
+| `8e741ae` | feat | restore entries from recycle bin (Tarefa 1 da S5) |
+| `caffd14` | chore | add dependabot config for npm, cargo and github-actions (S4.5 B3) |
+| `8147e45` | docs | change distribution strategy from Microsoft Store to direct download (S4.5 B2-final) |
 | `2282553` | docs | fix broken clone instructions in README |
 | `954e330` | feat | soft-delete entries via KDBX recycle bin (Tarefa 7) |
 | `dafbb53` | feat | wire commitEdit to Save button with dirty-state guards (Tarefa 6) |
@@ -815,10 +820,26 @@ de correção.
     KeePassXC
 - ✅ **Sessão 4.5 Bloco 1** (`2282553`): correção de instruções de clone
   no README
+- ✅ **Sessão 4.5 Bloco 2** (`32701da` + `8147e45`): atualização ampla
+  da documentação (README, CLAUDE.md §14, CONTRIBUTING.md L22) e
+  decisão de estratégia de distribuição (KeePass-style direct download
+  via site oficial, sem Microsoft Store).
+- ✅ **Sessão 4.5 Bloco 3** (`caffd14` + GitHub UI): governança do
+  repositório configurada — Dependabot (versionado em `caffd14`),
+  branch protection rule, secret scanning + push protection, topics +
+  description, workflow permissions read-only (essas últimas via
+  GitHub UI, não-versionadas).
+- ✅ **Sessão 5 — Ciclo de vida completo da Lixeira:**
+  - Tarefa 1 (`8e741ae`): restaurar entry da Lixeira para grupo raiz
+  - Tarefa 2 (`e36c275`): esvaziar Lixeira com confirmação + lembrete
+    de backup. Bug do `kdbx.remove()` documentado em §21 (não é
+    hard-delete quando `recycleBinEnabled=true`; correto é
+    `kdbx.move(entry, undefined)`)
+  - Tarefa 3 (`a762eb3`): polimento UX (i18n "Recycle Bin" → "Lixeira"
+    em renderização, estado vazio educativo)
 
-**Próximo:** Sessão 5 — busca em tempo real, subgrupos expansíveis na
-sidebar, restaurar/esvaziar Lixeira, e início do polimento de UX/UI
-dedicado.
+**Próximo:** Sessão 7 — busca em tempo real e/ou subgrupos expansíveis
+na sidebar (itens 🚧 do Roadmap Fase 1).
 
 ---
 

@@ -42,7 +42,7 @@ export function useDeleteEntry(): (entry: KdbxEntry) => Promise<boolean> {
 
       const confirmed = await confirmDialog({
         title: "Mover para a lixeira?",
-        description: `A entrada "${title}" vai para o grupo Lixeira do cofre. Você pode acessá-la depois para restaurar ou excluir definitivamente. (No MVP atual, restaurar/esvaziar a lixeira ainda não está implementado — use o KeePassXC se precisar.)`,
+        description: `A entrada "${title}" vai para a Lixeira. Você pode restaurá-la ou apagá-la permanentemente depois.`,
         confirmLabel: "Mover para lixeira",
         cancelLabel: "Cancelar",
         variant: "danger",
