@@ -1181,7 +1181,87 @@ um pass futuro de i18n consistente.
 
 ### TODO Sessão 5+
 
-- Restaurar entry da Lixeira (mover de volta pro grupo de origem ou raiz)
+- ✅ Restaurar entry da Lixeira (Tarefa 1 da Sessão 5 — ver §20)
 - Esvaziar Lixeira (hard-delete via `DeletedObjects`)
 - Mover entry entre grupos manualmente
 - Drag-and-drop na sidebar/lista
+
+---
+
+## 20. Restaurar entry da Lixeira (Tarefa 1 da Sessão 5)
+
+### `restoreEntryFromRecycleBin` em `kdbx.ts`
+
+Implementado em `src/lib/kdbx.ts` no mesmo padrão de `moveEntryToRecycleBin`.
+Move a entry da Lixeira de volta para o grupo raiz via
+`kdbx.move(entry, kdbx.getDefaultGroup())`.
+
+**Decisão de UX: destino é sempre o grupo raiz.** O KDBX não armazena o
+grupo de origem no momento do soft-delete, então não há como "restaurar
+para onde estava". Comportamento idêntico ao KeePassXC. O usuário pode
+mover a entry para outro grupo depois (Sessão 6+ vai expor mover entre
+grupos manualmente).
+
+Validações defensivas antes do move:
+1. `kdbx.meta.recycleBinUuid` existe e não está vazio.
+2. `kdbx.getGroup(recycleBinUuid)` retorna o grupo Lixeira.
+3. `entry.parentGroup === recycleBin` — entry está realmente lá.
+4. `kdbx.getDefaultGroup()` retorna o grupo raiz.
+
+UI já desabilita o botão "Restaurar" fora desse contexto, mas defesa
+programática evita corrupção silenciosa se algum bug futuro chamar a
+função em estado inválido.
+
+### Hook `useRestoreEntry`
+
+[src/hooks/useRestoreEntry.ts](src/hooks/useRestoreEntry.ts) — padrão
+similar ao `useDeleteEntry`, mas **sem `confirmDialog`**. Restaurar é
+ação benigna (reverte uma deleção); confirmação seria fricção
+desnecessária. Padrão alinhado com KeePassXC e Gmail (restaurar email
+da lixeira é instantâneo, sem prompt).
+
+Em sucesso: incrementa `vaultVersion`, limpa seleção
+(`selectEntry(null)` — entry saiu da Lixeira, lista atual mudou), toast
+verde `"Entrada restaurada para o grupo raiz (Xms)"`.
+
+Em erro de save: toast vermelho, NÃO incrementa `vaultVersion`. Mesmo
+trade-off do `moveEntryToRecycleBin`: kdbx em memória já mutado, próximo
+save persiste junto. TODO Sessão 6: rollback in-memory.
+
+### UI no `EntryDetail`
+
+Quando `useIsEntryInRecycleBin(entry) === true`, os botões "Editar" e
+"Deletar" são **substituídos** por um único botão "Restaurar" (ícone
+`Undo2` do lucide-react, variant outline). Quando false, comportamento
+original (Editar + Deletar) sem mudança.
+
+Estado local `restoring: boolean` evita double-click disparar dois saves
+em paralelo — botão fica disabled com texto "Restaurando..." durante o
+I/O.
+
+Tooltip antigo ("Esta entrada já está na Lixeira. No MVP atual,
+restaurar/esvaziar a lixeira é feito pelo KeePassXC.") foi removido —
+não faz mais sentido agora que existe caminho dentro do app.
+
+### Atalhos de teclado
+
+**Sem atalho para Restaurar.** Ctrl+R conflita com refresh do navegador
+(comportamento padrão indesejado). Restaurar é ação rara comparada a
+Editar/Deletar — clique do botão é suficiente.
+
+Ctrl+E e Delete continuam com guard `!inRecycleBin` (já implementado na
+Tarefa 7 da Sessão 4) — não disparam quando entry está na Lixeira.
+
+### Navegação após restaurar
+
+`selectEntry(null)` no sucesso. O `EntryList` (ou estado vazio) assume
+naturalmente — usuário continua no grupo Lixeira (não muda
+automaticamente para o raiz), permitindo restaurar múltiplas entries em
+sequência sem trocar de contexto.
+
+### Compatibilidade KeePass/KeePassXC
+
+Como usa `kdbx.move(entry, root)` da kdbxweb (mesma API que KeePassXC
+usa internamente), entries restauradas no Sec.Basis aparecem
+corretamente no grupo raiz quando o cofre é aberto no KeePassXC, e
+vice-versa. Validado fim-a-fim na validação manual da Tarefa 1.

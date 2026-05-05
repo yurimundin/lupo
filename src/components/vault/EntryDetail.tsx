@@ -16,12 +16,14 @@ import {
   Pencil,
   StickyNote,
   Trash2,
+  Undo2,
   User,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useDeleteEntry } from "@/hooks/useDeleteEntry";
+import { useRestoreEntry } from "@/hooks/useRestoreEntry";
 import { copyToClipboardWithAutoClear } from "@/lib/clipboard";
 import {
   formatRelative,
@@ -48,8 +50,10 @@ export function EntryDetail() {
   const enterEditMode = useVaultStore((s) => s.enterEditMode);
   const inRecycleBin = useIsEntryInRecycleBin(entry);
   const deleteEntry = useDeleteEntry();
+  const restoreEntry = useRestoreEntry();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   // Auto-oculta a senha após 10s sempre que ela é mostrada.
   useEffect(() => {
@@ -131,14 +135,6 @@ export function EntryDetail() {
   const groupName = entry.parentGroup?.name ?? "";
   const updatedLabel = formatRelative(getLastModTime(entry));
 
-  // Tooltip dos botões Editar/Deletar quando a entry está na lixeira.
-  // No MVP, gerenciar a lixeira (restaurar / esvaziar / editar item
-  // dentro dela) é responsabilidade do KeePassXC — informar isso no
-  // tooltip evita o usuário se perder.
-  const trashDisabledTooltip = inRecycleBin
-    ? "Esta entrada já está na Lixeira. No MVP atual, restaurar/esvaziar a lixeira é feito pelo KeePassXC."
-    : undefined;
-
   async function handleOpenUrl() {
     if (!url) return;
     try {
@@ -156,6 +152,19 @@ export function EntryDetail() {
   function handleDelete() {
     if (!entry || inRecycleBin) return;
     void deleteEntry(entry);
+  }
+
+  // Restaurar entry da Lixeira para o grupo raiz. Sem confirmDialog
+  // (decisão de UX: restaurar é benigno). `restoring` evita double-click
+  // disparar dois saves em paralelo.
+  async function handleRestore() {
+    if (!entry || !inRecycleBin || restoring) return;
+    setRestoring(true);
+    try {
+      await restoreEntry(entry);
+    } finally {
+      setRestoring(false);
+    }
   }
 
   return (
@@ -176,28 +185,43 @@ export function EntryDetail() {
           </p>
         </div>
         <div className="shrink-0 flex items-center gap-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleEdit}
-            disabled={inRecycleBin}
-            title={trashDisabledTooltip ?? "Editar entrada (Ctrl+E)"}
-          >
-            <Pencil />
-            Editar
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={handleDelete}
-            disabled={inRecycleBin}
-            title={trashDisabledTooltip ?? "Mover para a lixeira (Delete)"}
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 />
-          </Button>
+          {inRecycleBin ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void handleRestore()}
+              disabled={restoring}
+              title="Restaurar entrada para o grupo raiz"
+              aria-label="Restaurar entrada da Lixeira"
+            >
+              <Undo2 />
+              {restoring ? "Restaurando..." : "Restaurar"}
+            </Button>
+          ) : (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleEdit}
+                title="Editar entrada (Ctrl+E)"
+              >
+                <Pencil />
+                Editar
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={handleDelete}
+                title="Mover para a lixeira (Delete)"
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 />
+              </Button>
+            </>
+          )}
         </div>
       </header>
 

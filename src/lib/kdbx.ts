@@ -393,6 +393,79 @@ export async function moveEntryToRecycleBin(
   }
 }
 
+/** Resultado de `restoreEntryFromRecycleBin` — duração ou erro. */
+export type RestoreResult =
+  | { ok: true; durationMs: number }
+  | { ok: false; error: string };
+
+/**
+ * Restaura uma entry da Lixeira (RecycleBin) para o grupo raiz do cofre.
+ *
+ * Comportamento alinhado com KeePassXC: o grupo de origem NÃO é preservado
+ * (KDBX não armazena essa informação no momento do soft-delete). A entry
+ * vai sempre para o grupo raiz; o usuário pode movê-la depois para outro
+ * grupo se quiser.
+ *
+ * Ao contrário do `moveEntryToRecycleBin`, restaurar é ação benigna
+ * (reverte uma deleção) — o hook chamador (`useRestoreEntry`) NÃO usa
+ * `confirmDialog`. Padrão alinhado com KeePassXC e Gmail.
+ *
+ * Persistência: chama `saveVault` (escrita atômica + backup `.bak` +
+ * magic-check, ver §17 do CLAUDE.md). NÃO lança — sempre retorna
+ * `RestoreResult`.
+ *
+ * Mesmo trade-off do `moveEntryToRecycleBin` em caso de erro de save:
+ * o `kdbx` em memória já foi mutado; o disco mantém o estado antigo.
+ * Próximo `saveVault` bem-sucedido vai persistir o restore junto.
+ * TODO Sessão 6: rollback in-memory em erro.
+ */
+export async function restoreEntryFromRecycleBin(
+  filePath: string,
+  kdbx: Kdbx,
+  entry: KdbxEntry,
+): Promise<RestoreResult> {
+  if (!filePath || !kdbx || !entry) {
+    return { ok: false, error: "Estado inválido para restaurar entrada." };
+  }
+
+  try {
+    // Validação defensiva: confirmar que o cofre tem RecycleBin e que a
+    // entry está REALMENTE dentro dela. UI já desabilita o botão fora
+    // desse caso, mas defesa programática evita corrupção silenciosa se
+    // algum bug futuro chamar essa função em estado errado.
+    const recycleBinUuid = kdbx.meta.recycleBinUuid;
+    if (!recycleBinUuid || recycleBinUuid.empty) {
+      return { ok: false, error: "Cofre não tem Lixeira configurada." };
+    }
+    const recycleBin = kdbx.getGroup(recycleBinUuid);
+    if (!recycleBin) {
+      return { ok: false, error: "Grupo Lixeira não encontrado no cofre." };
+    }
+    if (entry.parentGroup !== recycleBin) {
+      return { ok: false, error: "Esta entrada não está na Lixeira." };
+    }
+
+    const root = kdbx.getDefaultGroup();
+    if (!root) {
+      return { ok: false, error: "Grupo raiz não encontrado no cofre." };
+    }
+
+    kdbx.move(entry, root);
+
+    const result = await saveVault(filePath, kdbx);
+    if (!result.ok) {
+      return { ok: false, error: result.error };
+    }
+
+    return { ok: true, durationMs: result.durationMs };
+  } catch (e) {
+    return {
+      ok: false,
+      error: `Erro ao restaurar entrada: ${describeError(e)}`,
+    };
+  }
+}
+
 // ----- Helpers internos de I/O e erro ---------------------------------------
 
 async function readFileBytes(filePath: string): Promise<Uint8Array> {
