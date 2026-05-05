@@ -36,6 +36,47 @@ if (SHOULD_RUN_SMOKE) {
   );
 }
 
+// =============================================================================
+// TODO REMOVER NA TAREFA 6 — smoke test manual do saveVault
+// =============================================================================
+// Expõe `window.__testSaveVault()` para teste manual via DevTools console
+// enquanto o botão Salvar do EntryEditor ainda não está conectado. NÃO
+// dispara automaticamente — o usuário humano chama no console quando
+// quiser validar o round-trip de save com backup atômico.
+//
+// Quando a Tarefa 6 conectar o save real ao botão "Salvar" do
+// EntryEditor, este bloco INTEIRO deve ser removido.
+if (import.meta.env.DEV) {
+  (
+    window as unknown as { __testSaveVault: () => Promise<void> }
+  ).__testSaveVault = async () => {
+    const { useVaultStore } = await import("./stores/vault");
+    const state = useVaultStore.getState();
+    if (!state.kdbx || !state.lastFilePath) {
+      console.error(
+        "[__testSaveVault] Nenhum cofre aberto. Abra um cofre primeiro.",
+      );
+      return;
+    }
+    const { saveVault } = await import("./lib/kdbx");
+    console.log(
+      `[__testSaveVault] Salvando "${state.kdbx.meta.name ?? "(sem nome)"}" → ${state.lastFilePath}`,
+    );
+    const result = await saveVault(state.lastFilePath, state.kdbx);
+    if (result.ok) {
+      console.log(
+        `[__testSaveVault] ✅ Save bem-sucedido em ${result.durationMs}ms`,
+      );
+      console.log(
+        "[__testSaveVault] Próximo passo: abrir o .kdbx e .kdbx.bak fora do app pra validar manualmente",
+      );
+    } else {
+      console.error(`[__testSaveVault] ❌ Falhou: ${result.error}`);
+    }
+  };
+  console.log("[DEV] Smoke test disponível: window.__testSaveVault()");
+}
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <App />

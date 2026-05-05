@@ -913,3 +913,76 @@ fazendo essa validação antes de qualquer trabalho novo.
      resolvido com `style` inline (ver §12).
   2. Loop infinito por selectors do Zustand retornando arrays novos —
      resolvido com `useMemo` + `vaultVersion` (ver §15).
+
+---
+
+## 17. Persistência atômica do `.kdbx` (Tarefa 5 da Sessão 4)
+
+### Sequência de save com backup atômico
+
+Implementada no backend Rust via comando `save_vault_with_backup` em
+[src-tauri/src/lib.rs](src-tauri/src/lib.rs):
+
+1. Valida path (não-vazio, extensão `.kdbx`, `vault_bytes` ≥ 200 bytes).
+2. Valida que o `.kdbx` atual existe, é arquivo, está em pasta acessível.
+3. Lê arquivo `.kdbx` atual e valida magic bytes
+   (`0x03 0xD9 0xA2 0x9A 0x67 0xFB 0x4B 0xB5`).
+4. Escreve `.kdbx.bak` com `fsync` (sobrescreve `.bak` antigo).
+5. Escreve `.kdbx.tmp` com novo conteúdo + `fsync`.
+6. Re-valida magic bytes do `.tmp` escrito.
+7. Renomeia `.tmp → .kdbx` (operação atômica do filesystem; no Windows,
+   `MoveFileExW` com `REPLACE_EXISTING`).
+
+### Garantias
+
+- Em qualquer falha de passos 1–6, o `.kdbx` original permanece intacto
+  (rename só acontece no passo 7, depois de validação completa).
+- Em qualquer falha após criar o `.tmp`, cleanup explícito remove o
+  arquivo temporário (`let _ = std::fs::remove_file(&tmp_path);` em todos
+  os caminhos de erro).
+- O `.kdbx.bak` sempre representa "o estado anterior à última save
+  bem-sucedida" — útil para recuperação manual se algum bug futuro
+  comprometer o `.kdbx`.
+- Mensagens de erro em PT-BR via helper `io_error_to_pt`. Usa apenas o
+  basename do path (não o caminho completo) para evitar vazar estrutura
+  de pastas internas. `to_string_lossy` preserva nome mesmo com chars
+  não-UTF8.
+
+### Estratégia do `.bak`: Opção A (sobrescreve a cada save)
+
+Decidida na Sessão 4: o `.bak` é **sempre** o estado imediatamente
+anterior à última save bem-sucedida — não há rotação de N versões
+históricas. Justificativas:
+
+- Espaço em disco previsível (sempre 1× tamanho do cofre).
+- Comportamento idêntico ao do KeePassXC.
+- Recuperação histórica de longo prazo é responsabilidade de backups
+  externos do usuário (OneDrive/Drive/Time Machine, etc.), não do app.
+
+### Frontend
+
+Função `saveVault(filePath, kdbx) → SaveResult` em
+[src/lib/kdbx.ts](src/lib/kdbx.ts) serializa o `Kdbx` e invoca o comando
+Rust. Retorna `{ ok: true, durationMs }` ou `{ ok: false, error }` —
+não lança, chamadores tratam via discriminated union.
+
+### `writeNewVaultFile` vs `saveVault`
+
+Convivem 2 funções de escrita em `kdbx.ts` por restrição inerente:
+
+- `writeNewVaultFile(filePath, db)` — usada APENAS em "Criar cofre" (o
+  arquivo ainda não existe no FS). Internamente usa o comando antigo
+  `write_file_with_backup`.
+- `saveVault(filePath, kdbx)` — usada em qualquer save SUBSEQUENTE
+  (cofre já existente). Usa `save_vault_with_backup` com magic-check +
+  backup atômico.
+
+Tarefa 6 conecta `saveVault` ao botão "Salvar" do `EntryEditor`.
+Tarefa 7 usa para persistir o move-to-trash.
+
+### Smoke test temporário
+
+Enquanto o save real não está conectado ao botão (Tarefa 6), o
+[main.tsx](src/main.tsx) expõe `window.__testSaveVault()` em DEV para
+teste manual via DevTools console. Marcado como `TODO REMOVER NA
+TAREFA 6` no comentário do bloco.

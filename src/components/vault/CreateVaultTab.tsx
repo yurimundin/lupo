@@ -30,7 +30,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { createVault, generateKeyFile, saveVault } from "@/lib/kdbx";
+import { createVault, generateKeyFile, writeNewVaultFile } from "@/lib/kdbx";
 import {
   computePasswordStrength,
   type PasswordStrength,
@@ -186,7 +186,7 @@ export function CreateVaultTab() {
       setPassword("");
       setConfirm("");
 
-      await saveVault(db, vaultPath);
+      await writeNewVaultFile(vaultPath, db);
       console.info("[Sec.Basis] cofre criado em:", vaultPath);
 
       const usedKeyFilePath = useKeyFile && keyFile ? keyFile.path : null;
