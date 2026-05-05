@@ -21,11 +21,16 @@ import {
 } from "@/lib/entry-helpers";
 import { cn } from "@/lib/utils";
 import {
+  getGroupDisplayName,
   getHasUnsavedChanges,
+  useCurrentGroup,
   useEntriesOfCurrentGroup,
   useIsCurrentGroupRecycleBin,
+  useRecycleBinUuidId,
   useVaultStore,
 } from "@/stores/vault";
+
+import { EmptyRecycleBinState } from "./EmptyRecycleBinState";
 
 export function EntryList() {
   const entries = useEntriesOfCurrentGroup();
@@ -35,6 +40,8 @@ export function EntryList() {
   const enterCreateMode = useVaultStore((s) => s.enterCreateMode);
   const exitToViewMode = useVaultStore((s) => s.exitToViewMode);
   const isRecycleBin = useIsCurrentGroupRecycleBin();
+  const currentGroup = useCurrentGroup();
+  const recycleBinUuidId = useRecycleBinUuidId();
   const emptyRecycleBin = useEmptyRecycleBin();
   const [emptying, setEmptying] = useState(false);
 
@@ -128,10 +135,20 @@ export function EntryList() {
       {/* Cabeçalho da lista — sempre visível mesmo quando vazio.
           Em grupo normal: botão "+" para criar nova entrada.
           Em Lixeira COM entries: botão "Esvaziar" (destructive).
-          Em Lixeira VAZIA: nenhum botão (padrão Gmail). */}
-      <header className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border bg-bg-secondary">
-        <span className="text-xs font-medium text-muted-foreground tabular-nums">
-          {sorted.length} {sorted.length === 1 ? "entrada" : "entradas"}
+          Em Lixeira VAZIA: nenhum botão (padrão Gmail).
+          Nome do grupo passa por `getGroupDisplayName` para traduzir
+          "Recycle Bin" → "Lixeira" sem mexer no XML interno. */}
+      <header className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-bg-secondary">
+        <span className="text-xs text-muted-foreground min-w-0 truncate">
+          {currentGroup && (
+            <span className="font-semibold text-foreground">
+              {getGroupDisplayName(currentGroup, recycleBinUuidId)}
+            </span>
+          )}
+          {currentGroup && <span className="mx-1.5">·</span>}
+          <span className="tabular-nums">
+            {sorted.length} {sorted.length === 1 ? "entrada" : "entradas"}
+          </span>
         </span>
         {isRecycleBin ? (
           sorted.length > 0 ? (
@@ -163,11 +180,20 @@ export function EntryList() {
       </header>
 
       {sorted.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center p-6">
-          <span className="text-xs text-muted-foreground">
-            (sem entradas neste grupo)
-          </span>
-        </div>
+        // Estado vazio: Lixeira ganha ilustração + mensagem educativa.
+        // Grupos normais mantêm o estado vazio mínimo herdado da Sessão 3
+        // (polir esses outros casos fica pra sessão futura de UX).
+        isRecycleBin ? (
+          <div className="flex-1 overflow-hidden">
+            <EmptyRecycleBinState />
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center p-6">
+            <span className="text-xs text-muted-foreground">
+              (sem entradas neste grupo)
+            </span>
+          </div>
+        )
       ) : (
         <ul className="flex-1 overflow-y-auto divide-y divide-border">
           {sorted.map((entry, idx) => {

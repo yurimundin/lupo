@@ -10,6 +10,7 @@ import { useEffect, useRef } from "react";
 import { confirmDialog } from "@/lib/confirm";
 import { cn } from "@/lib/utils";
 import {
+  getGroupDisplayName,
   getHasUnsavedChanges,
   useRecycleBinUuidId,
   useTopLevelGroups,
@@ -20,10 +21,10 @@ export function GroupSidebar() {
   const groups = useTopLevelGroups();
   const selectedGroupUuid = useVaultStore((s) => s.selectedGroupUuid);
   const selectGroup = useVaultStore((s) => s.selectGroup);
-  // UUID da Lixeira (string) ou null. Usado pra trocar o ícone do grupo
-  // correspondente. Tradução do nome ("Recycle Bin" → "Lixeira") fica
-  // pra um pass futuro de i18n — por enquanto exibimos o nome que vem
-  // do header KDBX, que é o mesmo que o KeePassXC mostra.
+  // UUID da Lixeira (string) ou null. Usado pra (a) trocar o ícone do
+  // grupo correspondente (Trash2 em vez de Folder) e (b) traduzir o nome
+  // exibido para "Lixeira" via `getGroupDisplayName` — sem mexer no XML
+  // canônico ("Recycle Bin"), preservando interop com KeePassXC.
   const recycleBinUuidId = useRecycleBinUuidId();
 
   const containerRef = useRef<HTMLElement>(null);
@@ -111,7 +112,9 @@ export function GroupSidebar() {
                 isRecycleBin ? "text-muted-foreground" : "text-brand-tertiary",
               )}
             />
-            <span className="flex-1 truncate">{g.name || "(sem nome)"}</span>
+            <span className="flex-1 truncate">
+              {getGroupDisplayName(g, recycleBinUuidId)}
+            </span>
             <span className="text-xs text-muted-foreground tabular-nums">
               {g.entries.length}
             </span>

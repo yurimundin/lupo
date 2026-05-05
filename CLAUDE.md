@@ -1347,6 +1347,77 @@ aumentaria risco de invocação acidental sem benefício prático.
 
 ### Navegação após esvaziar
 
-`selectEntry(null)` no sucesso. O `EntryList` mostra estado vazio
-("(sem entradas neste grupo)"). Sidebar continua exibindo o grupo
-Lixeira — não desaparece, comportamento idêntico ao KeePassXC.
+`selectEntry(null)` no sucesso. O `EntryList` mostra o estado vazio
+educativo (`EmptyRecycleBinState`, ver §22). Sidebar continua exibindo
+o grupo Lixeira — não desaparece, comportamento idêntico ao KeePassXC.
+
+---
+
+## 22. Polimento UX da Lixeira (Tarefa 3 da Sessão 5)
+
+### Tradução "Recycle Bin" → "Lixeira" via helper
+
+Helper puro `getGroupDisplayName(group, recycleBinUuidId)` em
+[src/stores/vault.ts](src/stores/vault.ts) — retorna `"Lixeira"` quando
+o grupo é o RecycleBin do cofre, ou `group.name || "(sem nome)"` caso
+contrário.
+
+**Decisão crítica: tradução é APENAS de renderização.** O
+`group.name` interno do XML continua `"Recycle Bin"` (nome canônico que
+o ecossistema KeePass internacionaliza no próprio cliente). Mexer no
+nome interno quebraria interop com KeePassXC e demais leitores —
+validado fim-a-fim na Tarefa 3.
+
+Função pura (não-hook) porque a derivação é trivial e o componente
+chamador já tem `useRecycleBinUuidId()` disponível. Combinar os dois é
+mais legível que esconder atrás de um wrapper.
+
+### Pontos de aplicação (auditoria)
+
+- [GroupSidebar.tsx](src/components/vault/GroupSidebar.tsx) — span do
+  item da sidebar (era `g.name || "(sem nome)"`).
+- [EntryList.tsx](src/components/vault/EntryList.tsx) — header da lista
+  agora mostra `<NomeDoGrupo> · N entradas` (antes só contador). Nome
+  passa pelo helper.
+- [EntryDetail.tsx](src/components/vault/EntryDetail.tsx) — variável
+  `groupName` no breadcrumb metadata da entry (antes era
+  `entry.parentGroup?.name ?? ""`).
+
+**Pontos não-aplicáveis (já em PT-BR hardcoded):** descrições do
+`confirmDialog` em `useDeleteEntry`, toasts em `useDeleteEntry` /
+`useRestoreEntry` / `useEmptyRecycleBin`, mensagens de erro em
+`kdbx.ts`. Não há instância de "Recycle Bin" exposta ao usuário fora
+das três renderizações acima.
+
+**Dívida técnica latente flagada na auditoria:** descrição do
+`confirmDialog` em `useDeleteEntry.ts:45` ainda menciona "(No MVP atual,
+restaurar/esvaziar a lixeira ainda não está implementado — use o
+KeePassXC se precisar.)" — texto stale após Tarefas 1 e 2. Limpar em
+sessão futura.
+
+### Estado vazio da Lixeira (`EmptyRecycleBinState`)
+
+Componente em
+[src/components/vault/EmptyRecycleBinState.tsx](src/components/vault/EmptyRecycleBinState.tsx).
+Padrão Gmail/Notion: ícone Trash2 64px com opacidade `/30`, h3 "Lixeira
+vazia", parágrafo educativo reforçando o ciclo de vida (entries movidas
+podem ser restauradas; esvaziar é permanente).
+
+Renderizado pelo `EntryList` quando `isCurrentGroupRecycleBin === true`
+**E** `entries.length === 0`. Grupos normais mantêm o estado vazio
+mínimo da Sessão 3 — polir os outros casos de estado vazio fica para
+sessão futura de UX dedicada.
+
+### Visual de entries individuais na Lixeira — sem diferenciação
+
+Decisão de UX cravada: entries renderizadas dentro da Lixeira têm
+**estilo idêntico** a entries em qualquer outro grupo (sem opacidade
+reduzida, sem ícone extra ao lado, sem strike-through). O contexto
+"esta entry está na Lixeira" já vem da sidebar (ícone Trash2 + nome
+"Lixeira"), do breadcrumb da `EntryDetail`, e da troca dos botões
+"Editar+Deletar" por "Restaurar".
+
+Adicionar diferenciação visual seria redundante e poluiria a lista —
+em uma sessão de bulk restore (caso de uso comum), o usuário precisa
+ler título/username/URL com a mesma facilidade que em qualquer outro
+grupo.

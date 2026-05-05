@@ -35,8 +35,10 @@ import {
   getUsername,
 } from "@/lib/entry-helpers";
 import {
+  getGroupDisplayName,
   useCurrentEntry,
   useIsEntryInRecycleBin,
+  useRecycleBinUuidId,
   useVaultStore,
 } from "@/stores/vault";
 
@@ -49,6 +51,7 @@ export function EntryDetail() {
   const entry = useCurrentEntry();
   const enterEditMode = useVaultStore((s) => s.enterEditMode);
   const inRecycleBin = useIsEntryInRecycleBin(entry);
+  const recycleBinUuidId = useRecycleBinUuidId();
   const deleteEntry = useDeleteEntry();
   const restoreEntry = useRestoreEntry();
 
@@ -132,7 +135,12 @@ export function EntryDetail() {
   const username = getUsername(entry);
   const url = getUrl(entry);
   const notes = getNotes(entry);
-  const groupName = entry.parentGroup?.name ?? "";
+  // Tradução "Recycle Bin" → "Lixeira" via helper compartilhado.
+  // Quando entry não tem parentGroup (não deveria acontecer, mas defesa),
+  // mostra string vazia para o breadcrumb sumir naturalmente.
+  const groupName = entry.parentGroup
+    ? getGroupDisplayName(entry.parentGroup, recycleBinUuidId)
+    : "";
   const updatedLabel = formatRelative(getLastModTime(entry));
 
   async function handleOpenUrl() {
