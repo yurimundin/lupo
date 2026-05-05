@@ -769,6 +769,8 @@ Repositório público: <https://github.com/yurimundin/secbasis>
 
 | Hash | Tipo | Descrição |
 |---|---|---|
+| `48d084e` | feat | expandable subgroups in sidebar with persistent state (S11) |
+| `7d7ba75` | docs | align CLAUDE.md §14 and README with project state through Session 10 (S10.5) |
 | `d2cc329` | docs | document smoke test gating strategy (CLAUDE.md §26) (S10 Tarefa C) |
 | `8d79212` | chore | update zustand and shadcn to latest patch/minor (S10 Tarefa B) |
 | `f9aedcc` | chore | sync Cargo.toml version with project manifests (0.1.0-alpha) (S9 hk) |
@@ -894,12 +896,34 @@ de correção.
   - Lição operacional registrada: investigar antes de marcar dívida
     técnica (Sessão 9 tinha flagged smoke test como "cleanup TODO"
     sem investigar; Sessão 10 confirmou que arquitetura estava sólida).
+- ✅ **Sessão 10.5 — Housekeeping documental** (`7d7ba75`):
+  - §14 atualizado com 8 commits acumulados (Sessões 6-10) e 6 marcos
+    correspondentes — encerrou drift de 4 sessões desde `47a82fb` (S6).
+  - Notação dos headings padronizada: §25 e §26 reformatados de
+    `## §N — Título` para `## N. Título` (alinhamento com §1-§24).
+  - README Fase 1: adicionados como ✅ Auto-open (S8) e Tela Sobre (S7).
+- ✅ **Sessão 11 — Subgrupos expansíveis na sidebar** (`48d084e`):
+  - Sidebar renderiza hierarquia KDBX recursivamente (antes só
+    mostrava filhos diretos do grupo raiz).
+  - Hook `useGroupTree()` em `vault.ts` com `useMemo` + selectors
+    atômicos (padrão §15 — sem loops de re-render).
+  - Componente `<GroupTreeItem />` recursivo com 2 botões separados
+    (chevron + nome) — sem `stopPropagation`, mais acessível.
+  - Persistência: `expandedGroupsByVault` em `useSettingsStore`
+    (localStorage por vaultPath).
+  - Indentação: 12px por nível, satura em 96px após nível 8 (estilo
+    VS Code).
+  - Root sempre expandido sem chevron (`forceExpanded` baseado em
+    `parentUuid === null`).
+  - Keyboard nav recursiva: setas ↑↓ navegam visíveis, → expande,
+    ← colapsa ou sobe pro pai (estilo VS Code Explorer).
+  - Documentação em §27.
 
-**Próximo:** Sessão 11 — busca em tempo real, subgrupos expansíveis
-na sidebar, ou empacotamento Windows (itens 🚧 do Roadmap Fase 1).
-Outras pendências: rollback in-memory em erros de save, code-splitting,
-CI básico (GitHub Actions), major upgrades de deps (vite 7→8,
-typescript 5→6).
+**Próximo:** Sessão 12 — busca em tempo real ou empacotamento Windows
+(itens 🚧 do Roadmap Fase 1). Outras pendências: rollback in-memory
+em erros de save, code-splitting, CI básico (GitHub Actions), major
+upgrades de deps (vite 7→8, typescript 5→6), PR aberto do Dependabot
+em branch `dev-dependencies-2f25c8d3ab`.
 
 ---
 
