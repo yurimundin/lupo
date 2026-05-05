@@ -12,6 +12,12 @@
 // vai pra disco). Quando o app é fechado, o caminho some e o usuário volta
 // pra tela de abrir/criar.
 //
+// Drafts de edição (campos `draftEntry` / `originalDraft`) também são
+// mantidos em memória e NUNCA persistidos. Senhas em draft vivem como
+// `string` durante edição ativa (custo aceitável dado que estão sendo
+// digitadas/exibidas na UI). No commit, são convertidas para
+// `ProtectedValue` antes de entrar no Kdbx.
+//
 // Para preferências do usuário (tema, autoLockMs, etc.), use `settings.ts`
 // que TEM persist habilitado.
 // =============================================================================
@@ -21,6 +27,33 @@ import { useMemo } from "react";
 import { create } from "zustand";
 
 import type { KdbxEntry, KdbxGroup, Kdbx } from "kdbxweb";
+
+import {
+  getNotes,
+  getPassword,
+  getTitle,
+  getUrl,
+  getUsername,
+} from "@/lib/entry-helpers";
+
+/** Modo do painel direito (EntryDetail/EntryEditor). */
+export type EditMode = "view" | "edit" | "create";
+
+/**
+ * Snapshot dos campos editáveis de uma entrada. Usado durante `edit` e
+ * `create`. Senha em string clara (necessário pra `<input type=password>`);
+ * conversão pra `ProtectedValue` acontece no commit, antes de entrar no
+ * Kdbx.
+ */
+export interface EntryDraft {
+  title: string;
+  username: string;
+  password: string;
+  url: string;
+  notes: string;
+  /** UUID do grupo de origem (em edit) ou destino (em create). */
+  groupUuid: string;
+}
 
 interface VaultState {
   /** Instância do cofre desbloqueado. `null` quando bloqueado ou nenhum cofre. */
@@ -44,6 +77,17 @@ interface VaultState {
   selectedGroupUuid: string | null;
   /** UUID da entrada selecionada na lista. */
   selectedEntryUuid: string | null;
+
+  /** Modo do painel direito. `view` é o padrão. */
+  editMode: EditMode;
+  /** Estado atual do form de edição/criação. `null` em modo `view`. */
+  draftEntry: EntryDraft | null;
+  /**
+   * Snapshot do draft no momento em que entramos em edit/create. Usado
+   * para detectar mudanças não-salvas (`useHasUnsavedChanges`). Não muda
+   * com `updateDraft`.
+   */
+  originalDraft: EntryDraft | null;
   /**
    * Contador incrementado a cada mutação in-place do `kdbx` (entries
    * adicionadas/editadas/movidas, fields alterados, etc.). Selectors que
@@ -63,6 +107,28 @@ interface VaultState {
   selectEntry(uuid: string | null): void;
   reset(): void;
 
+  /** Entra em modo `edit` populando o draft com dados da entry indicada. */
+  enterEditMode(entryUuid: string): void;
+  /**
+   * Entra em modo `create` com draft vazio, fixando o grupo destino
+   * (default = grupo atualmente selecionado). NÃO muda `selectedEntryUuid`.
+   */
+  enterCreateMode(groupUuid?: string): void;
+  /** Atualiza um campo do draft. */
+  updateDraft(field: keyof EntryDraft, value: string): void;
+  /**
+   * Sai de edit/create sem aplicar mudanças. Limpa draft e snapshot.
+   * Quem chama é responsável por confirmar com o usuário se houver
+   * mudanças não-salvas.
+   */
+  cancelEdit(): void;
+  /**
+   * Sai do modo de edição mantendo o estado de view (após commit
+   * bem-sucedido). NÃO mexe na seleção de entry — quem chama é o fluxo
+   * de save (ver Tarefa 6, hook `useCommitEdit`).
+   */
+  exitToViewMode(): void;
+
   /**
    * Incrementa `vaultVersion`. Chamar SEMPRE após qualquer mutação
    * in-place do `kdbx` (criar/editar/mover/deletar entry ou grupo,
@@ -71,13 +137,16 @@ interface VaultState {
   incrementVaultVersion(): void;
 }
 
-export const useVaultStore = create<VaultState>((set) => ({
+export const useVaultStore = create<VaultState>((set, get) => ({
   kdbx: null,
   filePath: null,
   lastFilePath: null,
   lastKeyFilePath: null,
   selectedGroupUuid: null,
   selectedEntryUuid: null,
+  editMode: "view",
+  draftEntry: null,
+  originalDraft: null,
   vaultVersion: 0,
 
   setVault: (kdbx, filePath, keyFilePath) =>
@@ -89,6 +158,9 @@ export const useVaultStore = create<VaultState>((set) => ({
       // Seleciona o grupo raiz por padrão pra UI ter algo pra mostrar.
       selectedGroupUuid: kdbx.getDefaultGroup().uuid.id,
       selectedEntryUuid: null,
+      editMode: "view",
+      draftEntry: null,
+      originalDraft: null,
     }),
 
   lock: () =>
@@ -98,6 +170,9 @@ export const useVaultStore = create<VaultState>((set) => ({
       // Mantém lastFilePath e lastKeyFilePath para a tela de desbloqueio.
       selectedGroupUuid: null,
       selectedEntryUuid: null,
+      editMode: "view",
+      draftEntry: null,
+      originalDraft: null,
     }),
 
   unlock: (kdbx) =>
@@ -106,9 +181,19 @@ export const useVaultStore = create<VaultState>((set) => ({
       filePath: state.lastFilePath,
       selectedGroupUuid: kdbx.getDefaultGroup().uuid.id,
       selectedEntryUuid: null,
+      editMode: "view",
+      draftEntry: null,
+      originalDraft: null,
     })),
 
-  selectGroup: (uuid) => set({ selectedGroupUuid: uuid, selectedEntryUuid: null }),
+  selectGroup: (uuid) =>
+    set({
+      selectedGroupUuid: uuid,
+      selectedEntryUuid: null,
+      editMode: "view",
+      draftEntry: null,
+      originalDraft: null,
+    }),
   selectEntry: (uuid) => set({ selectedEntryUuid: uuid }),
 
   reset: () =>
@@ -119,6 +204,73 @@ export const useVaultStore = create<VaultState>((set) => ({
       lastKeyFilePath: null,
       selectedGroupUuid: null,
       selectedEntryUuid: null,
+      editMode: "view",
+      draftEntry: null,
+      originalDraft: null,
+    }),
+
+  enterEditMode: (entryUuid) => {
+    const { kdbx } = get();
+    if (!kdbx) return;
+    const entry = findEntryByUuidIdInDb(kdbx, entryUuid);
+    if (!entry) return;
+    const groupUuid = entry.parentGroup?.uuid.id;
+    if (!groupUuid) return;
+    const draft: EntryDraft = {
+      title: getTitle(entry),
+      username: getUsername(entry),
+      password: getPassword(entry),
+      url: getUrl(entry),
+      notes: getNotes(entry),
+      groupUuid,
+    };
+    set({
+      editMode: "edit",
+      selectedEntryUuid: entryUuid,
+      draftEntry: draft,
+      originalDraft: { ...draft },
+    });
+  },
+
+  enterCreateMode: (groupUuid) => {
+    const target = groupUuid ?? get().selectedGroupUuid;
+    if (!target) return;
+    const draft: EntryDraft = {
+      title: "",
+      username: "",
+      password: "",
+      url: "",
+      notes: "",
+      groupUuid: target,
+    };
+    set({
+      editMode: "create",
+      // Em create não há entry selecionada (entry ainda não existe).
+      selectedEntryUuid: null,
+      draftEntry: draft,
+      originalDraft: { ...draft },
+    });
+  },
+
+  updateDraft: (field, value) =>
+    set((state) =>
+      state.draftEntry
+        ? { draftEntry: { ...state.draftEntry, [field]: value } }
+        : {},
+    ),
+
+  cancelEdit: () =>
+    set({
+      editMode: "view",
+      draftEntry: null,
+      originalDraft: null,
+    }),
+
+  exitToViewMode: () =>
+    set({
+      editMode: "view",
+      draftEntry: null,
+      originalDraft: null,
     }),
 
   incrementVaultVersion: () =>
@@ -201,6 +353,78 @@ export function useTopLevelGroups(): KdbxGroup[] {
 }
 
 /**
+ * `true` quando há mudanças no draft em relação ao snapshot. Comparação
+ * shallow campo-a-campo (suficiente, todos os campos são `string`).
+ *
+ * Em modo `create` praticamente sempre retorna `true` assim que o usuário
+ * digitar qualquer coisa (snapshot original tem todos campos vazios).
+ */
+export function useHasUnsavedChanges(): boolean {
+  return useVaultStore((s) => {
+    if (!s.draftEntry || !s.originalDraft) return false;
+    return !draftsEqual(s.draftEntry, s.originalDraft);
+  });
+}
+
+function draftsEqual(a: EntryDraft, b: EntryDraft): boolean {
+  return (
+    a.title === b.title &&
+    a.username === b.username &&
+    a.password === b.password &&
+    a.url === b.url &&
+    a.notes === b.notes &&
+    a.groupUuid === b.groupUuid
+  );
+}
+
+/**
+ * `true` se a entry indicada está dentro do grupo Lixeira do cofre. Usado
+ * para desabilitar editar/deletar (Sessão 4 deixa Lixeira read-only;
+ * gerenciar fica para Sessão 5).
+ */
+export function useIsEntryInRecycleBin(entry: KdbxEntry | null): boolean {
+  return useVaultStore((s) => {
+    if (!entry || !s.kdbx) return false;
+    const recycleBinUuid = s.kdbx.meta.recycleBinUuid;
+    if (!recycleBinUuid || recycleBinUuid.empty) return false;
+    return isInGroupSubtree(entry, recycleBinUuid.id);
+  });
+}
+
+/**
+ * `true` se o grupo atualmente selecionado é a Lixeira (ou sub-grupo
+ * dela). Usado para desabilitar criação de novas entradas dentro da
+ * lixeira.
+ */
+export function useIsCurrentGroupRecycleBin(): boolean {
+  return useVaultStore((s) => {
+    if (!s.kdbx || !s.selectedGroupUuid) return false;
+    const recycleBinUuid = s.kdbx.meta.recycleBinUuid;
+    if (!recycleBinUuid || recycleBinUuid.empty) return false;
+    if (s.selectedGroupUuid === recycleBinUuid.id) return true;
+    // Sobe a árvore do grupo selecionado verificando se passa pela lixeira.
+    let current = findGroupByUuidId(
+      s.kdbx.getDefaultGroup(),
+      s.selectedGroupUuid,
+    )?.parentGroup;
+    while (current) {
+      if (current.uuid.id === recycleBinUuid.id) return true;
+      current = current.parentGroup;
+    }
+    return false;
+  });
+}
+
+function isInGroupSubtree(entry: KdbxEntry, groupUuidId: string): boolean {
+  let current: KdbxGroup | undefined = entry.parentGroup;
+  while (current) {
+    if (current.uuid.id === groupUuidId) return true;
+    current = current.parentGroup;
+  }
+  return false;
+}
+
+/**
  * Busca a entrada por UUID em qualquer nível da árvore. Útil em handlers
  * de eventos globais (ex.: Ctrl+C copia senha da entry selecionada).
  * Retorna `null` se não encontrar.
@@ -223,6 +447,14 @@ function findEntryRecursive(
     if (hit) return hit;
   }
   return null;
+}
+
+/** Busca um grupo por UUID em qualquer nível da árvore. */
+export function findGroupByUuidIdInDb(
+  db: Kdbx,
+  groupUuidId: string,
+): KdbxGroup | null {
+  return findGroupByUuidId(db.getDefaultGroup(), groupUuidId);
 }
 
 // ---------------------------------------------------------------------------

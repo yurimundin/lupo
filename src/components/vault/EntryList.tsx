@@ -1,11 +1,15 @@
 // Lista (centro) — entradas do grupo selecionado.
 //
-// Cada item: avatar com iniciais (cor derivada do hash do título),
-// título em bold, subtítulo (username || URL || ""). Setas ↑/↓ navegam
-// quando algum item está focado.
+// Cabeçalho da lista tem botão "+" para criar nova entrada no grupo
+// atual (desabilitado se o grupo é a Lixeira). Cada item: avatar com
+// iniciais (cor derivada do hash do título), título em bold, subtítulo
+// (username || URL || ""). Setas ↑/↓ navegam quando algum item está
+// focado.
 
+import { Plus } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 
+import { Button } from "@/components/ui/button";
 import {
   getAvatarColorClass,
   getInitials,
@@ -14,12 +18,19 @@ import {
   getUsername,
 } from "@/lib/entry-helpers";
 import { cn } from "@/lib/utils";
-import { useEntriesOfCurrentGroup, useVaultStore } from "@/stores/vault";
+import {
+  useEntriesOfCurrentGroup,
+  useIsCurrentGroupRecycleBin,
+  useVaultStore,
+} from "@/stores/vault";
 
 export function EntryList() {
   const entries = useEntriesOfCurrentGroup();
   const selectedEntryUuid = useVaultStore((s) => s.selectedEntryUuid);
+  const selectedGroupUuid = useVaultStore((s) => s.selectedGroupUuid);
   const selectEntry = useVaultStore((s) => s.selectEntry);
+  const enterCreateMode = useVaultStore((s) => s.enterCreateMode);
+  const isRecycleBin = useIsCurrentGroupRecycleBin();
 
   const sorted = useMemo(() => {
     return [...entries].sort((a, b) =>
@@ -27,7 +38,7 @@ export function EntryList() {
     );
   }, [entries]);
 
-  const containerRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!selectedEntryUuid) return;
@@ -50,65 +61,89 @@ export function EntryList() {
     }
   }
 
-  if (sorted.length === 0) {
-    return (
-      <section className="border-r border-border flex items-center justify-center p-6">
-        <span className="text-xs text-muted-foreground">
-          (sem entradas neste grupo)
-        </span>
-      </section>
-    );
+  function handleCreate() {
+    if (!selectedGroupUuid || isRecycleBin) return;
+    enterCreateMode(selectedGroupUuid);
   }
 
   return (
     <section
       ref={containerRef}
-      className="border-r border-border overflow-y-auto"
+      className="border-r border-border flex flex-col overflow-hidden"
     >
-      <ul className="divide-y divide-border">
-        {sorted.map((entry, idx) => {
-          const title = getTitle(entry) || "(sem título)";
-          const username = getUsername(entry);
-          const url = getUrl(entry);
-          const subtitle = username || url || "";
-          const selected = entry.uuid.id === selectedEntryUuid;
-          return (
-            <li key={entry.uuid.id}>
-              <button
-                type="button"
-                data-entry-uuid={entry.uuid.id}
-                onClick={() => selectEntry(entry.uuid.id)}
-                onKeyDown={(e) => handleKeyDown(e, idx)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                  selected
-                    ? "bg-[#E8F4FA] dark:bg-[#152B36] border-l-2 border-l-primary"
-                    : "border-l-2 border-l-transparent hover:bg-muted",
-                )}
-              >
-                <span
+      {/* Cabeçalho da lista — sempre visível mesmo quando vazio. */}
+      <header className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border bg-bg-secondary">
+        <span className="text-xs font-medium text-muted-foreground tabular-nums">
+          {sorted.length} {sorted.length === 1 ? "entrada" : "entradas"}
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleCreate}
+          disabled={!selectedGroupUuid || isRecycleBin}
+          title={
+            isRecycleBin
+              ? "Não é possível criar entradas dentro da lixeira"
+              : "Nova entrada"
+          }
+        >
+          <Plus />
+        </Button>
+      </header>
+
+      {sorted.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <span className="text-xs text-muted-foreground">
+            (sem entradas neste grupo)
+          </span>
+        </div>
+      ) : (
+        <ul className="flex-1 overflow-y-auto divide-y divide-border">
+          {sorted.map((entry, idx) => {
+            const title = getTitle(entry) || "(sem título)";
+            const username = getUsername(entry);
+            const url = getUrl(entry);
+            const subtitle = username || url || "";
+            const selected = entry.uuid.id === selectedEntryUuid;
+            return (
+              <li key={entry.uuid.id}>
+                <button
+                  type="button"
+                  data-entry-uuid={entry.uuid.id}
+                  onClick={() => selectEntry(entry.uuid.id)}
+                  onKeyDown={(e) => handleKeyDown(e, idx)}
                   className={cn(
-                    "size-8 rounded-md flex items-center justify-center text-xs font-semibold text-white shrink-0",
-                    getAvatarColorClass(title),
+                    "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                    selected
+                      ? "bg-[#E8F4FA] dark:bg-[#152B36] border-l-2 border-l-primary"
+                      : "border-l-2 border-l-transparent hover:bg-muted",
                   )}
                 >
-                  {getInitials(title)}
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block font-semibold text-sm truncate">
-                    {title}
+                  <span
+                    className={cn(
+                      "size-8 rounded-md flex items-center justify-center text-xs font-semibold text-white shrink-0",
+                      getAvatarColorClass(title),
+                    )}
+                  >
+                    {getInitials(title)}
                   </span>
-                  {subtitle && (
-                    <span className="block text-xs text-muted-foreground truncate">
-                      {subtitle}
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-semibold text-sm truncate">
+                      {title}
                     </span>
-                  )}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                    {subtitle && (
+                      <span className="block text-xs text-muted-foreground truncate">
+                        {subtitle}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 }

@@ -1,5 +1,8 @@
-// Painel direito — detalhe da entrada selecionada (READ-ONLY na Sessão 3).
-// Edição vem na Sessão 4.
+// Painel direito.
+//
+// Atua como switch entre os modos do `vault.editMode`:
+// - `view`  → renderiza o detalhe READ-ONLY (este componente).
+// - `edit`/`create` → delega ao `EntryEditor`.
 
 import { open as openExternal } from "@tauri-apps/plugin-shell";
 import {
@@ -10,7 +13,9 @@ import {
   Inbox,
   KeyRound,
   Link as LinkIcon,
+  Pencil,
   StickyNote,
+  Trash2,
   User,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -26,12 +31,22 @@ import {
   getUrl,
   getUsername,
 } from "@/lib/entry-helpers";
-import { useCurrentEntry } from "@/stores/vault";
+import {
+  useCurrentEntry,
+  useIsEntryInRecycleBin,
+  useVaultStore,
+} from "@/stores/vault";
+
+import { EntryEditor } from "./EntryEditor";
 
 const SHOW_PASSWORD_AUTO_HIDE_MS = 10_000;
 
 export function EntryDetail() {
+  const editMode = useVaultStore((s) => s.editMode);
   const entry = useCurrentEntry();
+  const enterEditMode = useVaultStore((s) => s.enterEditMode);
+  const inRecycleBin = useIsEntryInRecycleBin(entry);
+
   const [showPassword, setShowPassword] = useState(false);
 
   // Auto-oculta a senha após 10s sempre que ela é mostrada.
@@ -51,6 +66,11 @@ export function EntryDetail() {
 
   const password = useMemo(() => (entry ? getPassword(entry) : ""), [entry]);
 
+  // Switch para o editor — toda a lógica de edit/create vive lá.
+  if (editMode !== "view") {
+    return <EntryEditor />;
+  }
+
   if (!entry) {
     return (
       <section className="flex items-center justify-center p-6">
@@ -69,6 +89,10 @@ export function EntryDetail() {
   const groupName = entry.parentGroup?.name ?? "";
   const updatedLabel = formatRelative(getLastModTime(entry));
 
+  const editDisabledTooltip = inRecycleBin
+    ? "Restaure ou esvazie a lixeira para gerenciar esta entrada"
+    : undefined;
+
   async function handleOpenUrl() {
     if (!url) return;
     try {
@@ -78,19 +102,57 @@ export function EntryDetail() {
     }
   }
 
+  function handleEdit() {
+    if (!entry || inRecycleBin) return;
+    enterEditMode(entry.uuid.id);
+  }
+
+  function handleDelete() {
+    // TODO Tarefa 7: abrir ConfirmDialog "Mover para a lixeira?".
+    console.warn("[EntryDetail] TODO Tarefa 7 — delete não conectado");
+  }
+
   return (
     <section className="overflow-y-auto p-6 space-y-5">
-      <header>
-        <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
-        <p className="text-xs text-muted-foreground mt-1">
-          Atualizado {updatedLabel}
-          {groupName && (
-            <>
-              <span className="mx-1">·</span>
-              <span>{groupName}</span>
-            </>
-          )}
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl font-semibold tracking-tight truncate">
+            {title}
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Atualizado {updatedLabel}
+            {groupName && (
+              <>
+                <span className="mx-1">·</span>
+                <span>{groupName}</span>
+              </>
+            )}
+          </p>
+        </div>
+        <div className="shrink-0 flex items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleEdit}
+            disabled={inRecycleBin}
+            title={editDisabledTooltip ?? "Editar entrada"}
+          >
+            <Pencil />
+            Editar
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={handleDelete}
+            disabled={inRecycleBin}
+            title={editDisabledTooltip ?? "Mover para a lixeira"}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 />
+          </Button>
+        </div>
       </header>
 
       {username && (

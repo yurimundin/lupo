@@ -6,13 +6,14 @@ import { Lock as LockIcon, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useVaultStore } from "@/stores/vault";
+import { useHasUnsavedChanges, useVaultStore } from "@/stores/vault";
 
 import { AutoLockIndicator } from "./AutoLockIndicator";
 
 export function VaultHeader() {
   const filePath = useVaultStore((s) => s.filePath);
   const lock = useVaultStore((s) => s.lock);
+  const hasUnsavedChanges = useHasUnsavedChanges();
 
   return (
     <header className="h-12 shrink-0 flex items-center gap-3 px-4 border-b border-border bg-bg-secondary">
@@ -31,6 +32,15 @@ export function VaultHeader() {
           className="pl-8 h-8"
         />
       </div>
+
+      {hasUnsavedChanges && (
+        <span
+          className="text-xs text-warning font-medium"
+          title="Mudanças não-salvas no editor"
+        >
+          ● não salvo
+        </span>
+      )}
 
       <AutoLockIndicator />
 
