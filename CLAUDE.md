@@ -2088,3 +2088,84 @@ vulnerability transitiva não tem patch disponível na versão fixada por
 um pacote pai. Esse erro **não bloqueia** desenvolvimento — apenas
 indica que Dependabot não consegue propor PR de fix. Auto-resolve
 quando o pacote pai atualiza sua dep direta.
+
+---
+
+## 31. Smart App Control e Mark-of-the-Web em projetos Tauri (Sessão 15)
+
+**Contexto:** Windows 11 (a partir do build 22H2) inclui Smart App
+Control — proteção de segurança que bloqueia execução de binários não
+assinados quando esses binários estão em pastas com Mark-of-the-Web
+(MOTW). MOTW é flag aplicada automaticamente a:
+
+- Pastas `Downloads/` (qualquer arquivo baixado por navegador)
+- Pastas sincronizadas pelo OneDrive
+- Pastas sincronizadas pelo Dropbox
+- Arquivos extraídos de ZIPs baixados
+
+**Sintoma específico em Tauri:**
+
+Ao rodar `npm run tauri dev` em pasta com MOTW, o build falha com:
+
+```
+error 4551 (ERROR_WHC_PUBLISHER_DENIED)
+```
+
+apontando para `target\debug\build\<crate>-<hash>\build-script-build`.
+A mensagem completa indica que o `.exe` produzido pelo Cargo
+(build-script intermediário, não o app final) não pode ser executado.
+
+**Causa raiz:** Cargo gera build scripts compilados como `.exe` que
+precisam executar durante o build. Esses `.exe` não são assinados.
+Smart App Control bloqueia execução em pastas com MOTW. Resultado:
+Cargo não consegue completar o build.
+
+**Disparador específico de quando aparece:**
+
+O `error 4551` não aparece em todo build — aparece quando o `.exe` do
+build-script muda de hash. Isso acontece quando:
+
+- Versão do projeto muda (ex: bump em `Cargo.toml`)
+- Dependências mudam (após `cargo update`)
+- Compilação from-scratch (após `cargo clean`)
+
+Builds incrementais sem mudança de hash funcionam (Smart App Control
+parece ter cache de "este hash já foi visto e bloqueado", mas se o
+hash já existia antes do bloqueio, executa).
+
+**Mitigação:** mover projeto para pasta SEM MOTW. Sugestão:
+`C:\dev\<projeto>\`. Pastas em `C:\Users\<user>\` que NÃO sejam
+`Downloads`, `OneDrive\<algo>`, ou similar não têm MOTW por default.
+
+**Histórico:**
+
+- **Sessão 9.5/10 (máquina nova Windows 11):** primeiro encontro com
+  `error 4551` ao bumpar versão para `0.1.0-alpha`. Build script gerou
+  novo `.exe` com hash novo, Smart App Control bloqueou. Solução:
+  mover de `Downloads/03 - Projetos/Code_Playground/sec.basis` para
+  `C:\dev\secbasis`. Build voltou a funcionar.
+- **Sessão 11+ (máquina original):** projeto continuou em
+  `Downloads/...`. Sem `error 4551` porque builds anteriores já tinham
+  populado cache "OK" do Smart App Control para os hashes em uso.
+  Provável que próximo bump de versão ou `cargo clean` reproduza o
+  problema.
+
+**Recomendação:** projetos Tauri devem viver em pasta sem MOTW desde
+o início. Para repos clonados em `Downloads/`, mover para `C:\dev\`
+preventivamente. Comando:
+
+```powershell
+# Da raiz do projeto, em PowerShell:
+$source = (Get-Location).Path
+$dest = "C:\dev\$(Split-Path -Leaf $source)"
+Move-Item -Path $source -Destination $dest
+cd $dest
+```
+
+Após mover, rodar `cargo clean && npm run tauri dev` para confirmar
+que Smart App Control não bloqueia mais.
+
+**Lição operacional:** problemas de "binário não consegue executar
+durante build" em Windows 11 são frequentemente Smart App Control,
+não bug de código. Investigar variável de ambiente `MOTW` antes de
+debug profundo de Cargo/Tauri/PATH/permissions.
