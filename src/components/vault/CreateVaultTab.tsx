@@ -461,6 +461,9 @@ function CheckboxRow({
 }
 
 function sanitizeFileName(name: string): string {
+  // Sanitização de filename: \x00-\x1F são caracteres de controle
+  // inválidos em filesystems (Windows/Linux/macOS).
+  // eslint-disable-next-line no-control-regex
   return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
 }
 

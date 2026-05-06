@@ -80,7 +80,6 @@ export function UnlockScreen() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastKeyFilePath]);
 
   async function handleSelectKeyFile() {

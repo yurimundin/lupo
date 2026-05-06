@@ -388,6 +388,9 @@ export function useEntriesOfCurrentGroup(): KdbxEntry[] {
     if (!kdbx || !selectedGroupUuid) return [];
     const group = findGroupByUuidId(kdbx.getDefaultGroup(), selectedGroupUuid);
     return group?.entries ?? [];
+    // vaultVersion é cache-buster intencional (§15): incrementa a cada
+    // mutação in-place do kdbx; força re-execução sem ser referenciado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kdbx, selectedGroupUuid, vaultVersion]);
 }
 
@@ -413,6 +416,9 @@ export function useAllEntries(): KdbxEntry[] {
     const acc: KdbxEntry[] = [];
     collectEntriesRecursive(kdbx.getDefaultGroup(), acc, recycleBinUuidId);
     return acc;
+    // vaultVersion é cache-buster intencional (§15): incrementa a cada
+    // mutação in-place do kdbx; força re-execução sem ser referenciado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kdbx, vaultVersion, recycleBinUuidId]);
 }
 
@@ -458,6 +464,9 @@ export function useTopLevelGroups(): KdbxGroup[] {
     // Inclui o próprio root como primeiro item — corresponde ao "Cofre" raiz
     // que o usuário verá. Subgrupos vêm em seguida.
     return [root, ...root.groups];
+    // vaultVersion é cache-buster intencional (§15): incrementa a cada
+    // mutação in-place do kdbx; força re-execução sem ser referenciado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kdbx, vaultVersion]);
 }
 
@@ -521,6 +530,8 @@ export function useGroupTree(): GroupTreeNode[] {
   return useMemo(() => {
     if (!kdbx) return [];
     return [buildGroupTreeNode(kdbx.getDefaultGroup(), 0, null, recycleBinUuidId)];
+    // vaultVersion é cache-buster intencional (§15): incrementa a cada
+    // mutação in-place do kdbx; força re-execução sem ser referenciado.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kdbx, vaultVersion, recycleBinUuidId]);
 }
@@ -599,6 +610,9 @@ export function useRecycleBinUuidId(): string | null {
     const uuid = kdbx.meta.recycleBinUuid;
     if (!uuid || uuid.empty) return null;
     return uuid.id;
+    // vaultVersion é cache-buster intencional (§15): incrementa a cada
+    // mutação in-place do kdbx; força re-execução sem ser referenciado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kdbx, vaultVersion]);
 }
 

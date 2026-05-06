@@ -2020,18 +2020,21 @@ divergem entre branches.
 
 ---
 
-## 29. CI básico GitHub Actions (Sessão 13)
+## 29. CI básico GitHub Actions (Sessões 13, 18)
 
 **Contexto:** projeto adota quality gate via GitHub Actions a partir
 da Sessão 13. Roda em todo push em `main` e em todo pull request
 visando `main`.
 
-**Workflow:** `.github/workflows/ci.yml`. Dois jobs paralelos:
+**Workflow:** `.github/workflows/ci.yml`. Três jobs paralelos:
 
 1. **TypeScript check:** `npx tsc --noEmit` — pega erros de tipo sem
    gerar artefatos.
 2. **Rust check:** `cargo check --all-targets` em `src-tauri/` — pega
    erros de compilação Rust sem gerar binário.
+3. **ESLint check** (`npm run lint` → `eslint . --max-warnings=0` em
+   flat config v9). Falha em qualquer warning. Convenções de
+   supressão documentadas em §33.
 
 **Decisões arquiteturais:**
 
@@ -2375,3 +2378,99 @@ como `npm run tauri dev` para early adopters técnicos, ou via build
 não-assinado para usuários FOSS-friendly, sem prejuízo. Empacotamento
 assinado entra quando a foundation legal/financeira estiver
 estabelecida.
+
+---
+
+## 33. ESLint setup e convenções de supressão (Sessão 18)
+
+### Setup
+
+ESLint 9.x configurado com flat config (`eslint.config.js`). Plugins
+ativos:
+
+- `typescript-eslint` — parser + regras recommended para TypeScript
+- `eslint-plugin-react-hooks` — `react-hooks/recommended`
+- `eslint-plugin-react-refresh` — para Vite HMR
+
+**Strict mode:** o script `npm run lint` roda
+`eslint . --max-warnings=0` — qualquer warning falha o lint. CI
+integrado como 3º job paralelo (vide §29).
+
+### Override shadcn
+
+Componentes em `src/components/ui/**` desabilitam
+`react-refresh/only-export-components`. Justificativa: shadcn
+vendored exporta `cva` variants e helpers junto com o componente
+React (padrão upstream do projeto), o que viola a regra. Refatorar
+para extrair non-component exports divergiria da convenção shadcn
+sem ganho prático.
+
+### Convenções de supressão
+
+Padrão para qualquer `eslint-disable-next-line`:
+
+1. Linha(s) de comentário explicando o porquê acima
+2. `eslint-disable-next-line <regra>` nu (sem `-- reason` inline) na
+   linha imediatamente antes do código
+
+**Razão técnica:** ESLint trata texto após `eslint-disable-next-line`
+como **lista de regras separadas por vírgula**. Sintaxe
+`rule -- reason` vira nome de regra inválido (`rule --`), não
+delimitador de comentário. Padrão alternativo (comentários antes +
+disable nu) é equivalente em legibilidade e funciona.
+
+Exemplo:
+
+```typescript
+// vaultVersion é cache-buster intencional (§15): incrementa a cada
+// mutação in-place do kdbx; força re-execução sem ser referenciado.
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [kdbx, vaultVersion, recycleBinUuidId]);
+```
+
+### Supressões documentadas (Sessão 18)
+
+**`src/stores/vault.ts` — 5 ocorrências de `react-hooks/exhaustive-deps`:**
+
+`vaultVersion` é listado em deps array de cinco `useMemo` sem ser
+referenciado no callback. Padrão intencional do §15:
+`vaultVersion` é incrementado a cada mutação in-place do `kdbx`
+(que é referência estável). ESLint não tem como inferir essa
+relação. Hooks afetados:
+
+- `useEntriesOfCurrentGroup`
+- `useAllEntries` (S17)
+- `useTopLevelGroups` (legacy)
+- `useGroupTree` (S11)
+- `useRecycleBinUuidId`
+
+**`src/components/vault/CreateVaultTab.tsx:464` — `no-control-regex`:**
+
+Regex de sanitização de filename usa range `\x00-\x1F` (caracteres
+de controle ASCII) intencionalmente — esses caracteres são inválidos
+em filenames de Windows/Linux/macOS, e a regex substitui-os por `_`
+antes de criar o arquivo `.kdbx`.
+
+**`src/components/vault/PasswordGenerator.tsx:81` —
+`react-hooks/exhaustive-deps`:**
+
+Pré-existente desde sessão anterior. `useEffect` dispara apenas
+quando `open` muda, não quando `options` muda — decisão intencional
+(toda abertura mostra senha fresca, não a última gerada). Mantido
+como está; comentário explicativo pode ser adicionado em sessão
+futura de cleanup.
+
+### Lição operacional
+
+ESLint sem instalação é **decoração**. Comentários `eslint-disable`
+em código sem o linter instalado não suprimem nada — funcionam
+apenas como sinalização ao desenvolvedor. Quando ESLint finalmente
+entrou no projeto (Sessão 18), descoberta concreta: 4 disables
+pré-existentes eram **órfãos** (em `OpenVaultTab.tsx`,
+`UnlockScreen.tsx` e 2 no `vault.ts` que tinham comportamento
+diferente). ESLint moderno reportou-os como `Unused eslint-disable
+directive`.
+
+**Princípio:** adicionar `eslint-disable` apenas quando há regra
+real a suprimir, com comentário explicativo. Adições preventivas
+viram dívida documental.
