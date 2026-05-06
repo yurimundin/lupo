@@ -1941,3 +1941,53 @@ forma. Quando o PR reabrir limpo, avaliar deps individualmente.
 **Lição:** PRs de Dependabot precisam de `git diff` antes de qualquer
 ação. UI do GitHub não protege contra stale merge se os arquivos
 divergem entre branches.
+
+---
+
+## 29. CI básico GitHub Actions (Sessão 13)
+
+**Contexto:** projeto adota quality gate via GitHub Actions a partir
+da Sessão 13. Roda em todo push em `main` e em todo pull request
+visando `main`.
+
+**Workflow:** `.github/workflows/ci.yml`. Dois jobs paralelos:
+
+1. **TypeScript check:** `npx tsc --noEmit` — pega erros de tipo sem
+   gerar artefatos.
+2. **Rust check:** `cargo check --all-targets` em `src-tauri/` — pega
+   erros de compilação Rust sem gerar binário.
+
+**Decisões arquiteturais:**
+
+- **Ubuntu runner** (não Windows): mais rápido, mais barato em minutos
+  GitHub. Suficiente porque CI é **checagem de código**, não build de
+  release. Empacotamento Windows acontece em pipeline separado quando
+  for ativado.
+- **Linux deps de Tauri instaladas no job Rust:** `libwebkit2gtk-4.1-dev`,
+  `libayatana-appindicator3-dev`, `librsvg2-dev`, `libxdo-dev`,
+  `libssl-dev`, `patchelf`. Sem essas libs, `cargo check` falha porque
+  `tauri-runtime-wry` puxa `glib`/`gtk`/`webkit2gtk` no Linux (vide §25).
+  Ubuntu 24.04 renomeou `libappindicator3-dev` para
+  `libayatana-appindicator3-dev`.
+- **`npm ci` em vez de `npm install`:** respeita `package-lock.json`
+  exatamente, falha se lock divergir do manifest (proteção contra
+  inconsistências commitadas).
+- **Cache:** `actions/setup-node@v4` com `cache: 'npm'` (built-in) +
+  `Swatinem/rust-cache@v2` (cache de cargo registry + target/). Runs
+  subsequentes ~30s vs ~3 min from-scratch.
+- **`cargo check --all-targets`:** inclui tests/examples/benches no
+  type check (mais coverage que `cargo check` default).
+
+**Branch protection:** **NÃO ativada inicialmente.** Validar
+funcionamento por 1-2 semanas antes de tornar CI obrigatório para
+merge no `main`. Quando ativar, ir em GitHub Settings → Branches →
+Branch protection rules → Require status checks to pass.
+
+**Versões pinadas:**
+- Node 22 (current LTS aligned with project)
+- Rust stable (latest at run time, refreshed by toolchain action)
+- Actions: pinned ao major (`@v4`, `@v2`) — Dependabot atualiza minor/patch
+
+**Lição:** CI básico desde alpha protege qualidade sem custo de
+desenvolvimento. Não over-engineer com smoke tests headless ou audits
+preventivamente — adicionar quando dor real for identificada.
