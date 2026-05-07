@@ -255,7 +255,7 @@ export function EntryList() {
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                     selected
-                      ? "bg-[#E8F4FA] dark:bg-[#152B36] border-l-2 border-l-primary"
+                      ? "bg-selected-entry border-l-2 border-l-selected-border"
                       : "border-l-2 border-l-transparent hover:bg-muted",
                   )}
                 >
@@ -268,7 +268,12 @@ export function EntryList() {
                     {getInitials(title)}
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className="block font-semibold text-sm truncate">
+                    <span
+                      className={cn(
+                        "block font-semibold text-sm truncate",
+                        selected && "text-selected-entry-foreground",
+                      )}
+                    >
                       {/* Highlight do trecho que casa com a query.
                           Aplicado APENAS durante busca e quando há
                           título real (não no fallback "(sem título)"). */}

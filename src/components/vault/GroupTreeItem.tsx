@@ -58,7 +58,7 @@ export function GroupTreeItem({
         className={cn(
           "group flex items-center gap-1 pr-2 py-1.5 rounded-md text-sm transition-colors",
           selected
-            ? "bg-brand-soft font-semibold text-foreground"
+            ? "bg-selected font-semibold text-selected-foreground"
             : "hover:bg-muted text-foreground",
         )}
         style={{ paddingLeft: `${indentPx}px` }}

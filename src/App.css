@@ -40,11 +40,22 @@
   --text-primary: #1a1d24;
   --text-secondary: #6b7280;
 
-  /* Semânticas (mesmas em light e dark) */
+  /* Semânticas (light) */
   --success: #46a758;
   --warning: #ffb224;
   --danger: #e5484d;
   /* NOTA: --brand-accent (#91f2e9) é destaque visual, NÃO sucesso. */
+
+  /* Selected-state tokens (theme-aware) — Sessão 20.
+     Tokens semânticos para "estado selecionado" (grupos na sidebar +
+     entries na lista). Substituem magic colors hardcoded no light
+     (#E8F4FA, brand-soft) e permitem variantes legíveis no dark
+     sem expor cores arbitrárias nos componentes. */
+  --selected-bg: #d0ecf2;          /* grupo selecionado — = brand-soft */
+  --selected-fg: #0e3a4f;          /* texto sobre --selected-bg (teal escuro) */
+  --selected-entry-bg: #e8f4fa;    /* entry selecionada (azul mais claro) */
+  --selected-entry-fg: #0e3a4f;    /* texto sobre --selected-entry-bg */
+  --selected-border: #4eb1d9;      /* borda esquerda da entry — = brand-primary */
 
   /* ----- Camada 2 — tokens shadcn mapeados para os crus ----- */
 
@@ -75,11 +86,24 @@
 .dark {
   --bg: #0f1419;
   --bg-secondary: #171b22;
-  --border-color: #262c36;
+  --border-color: #2a3340;          /* +legibilidade dos separadores */
   --text-primary: #f4f6f8;
-  --text-secondary: #9ca3af;
-  /* Marca, semânticas e --primary-foreground/--destructive-foreground
-     mantêm os mesmos valores em ambos os modos. */
+  --text-secondary: #b0b8c4;        /* +contraste vs #9ca3af anterior */
+
+  /* Semânticas — variantes mais brilhantes para legibilidade no dark */
+  --warning: #ffc34d;
+  --danger: #ff6b70;
+
+  /* Selected-state tokens — variantes dark com contraste correto
+     (light blue sobre background dark fica ilegível, tokens mudam aqui). */
+  --selected-bg: #1d3a48;           /* grupo selecionado — deep teal */
+  --selected-fg: #b8e6f5;           /* texto sobre --selected-bg */
+  --selected-entry-bg: #152b36;     /* entry selecionada */
+  --selected-entry-fg: #d6effa;     /* texto sobre --selected-entry-bg */
+  --selected-border: #6cc6e6;       /* borda — variant brighter de brand-primary */
+
+  /* Marca e --primary-foreground/--destructive-foreground mantêm os
+     mesmos valores (success também — verde funciona igual em ambos). */
 }
 
 /* =============================================================================
@@ -125,6 +149,16 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+
+  /* Selected-state semantic tokens — geram bg-selected, text-selected,
+     bg-selected-entry, text-selected-entry, border-selected. Usar nos
+     itens de sidebar (grupos) e lista (entries) — substituem magic
+     colors. Theme-aware via .dark override em Camada 1. */
+  --color-selected: var(--selected-bg);
+  --color-selected-foreground: var(--selected-fg);
+  --color-selected-entry: var(--selected-entry-bg);
+  --color-selected-entry-foreground: var(--selected-entry-fg);
+  --color-selected-border: var(--selected-border);
 
   /* Radius — escala derivada de --radius (convenção shadcn). */
   --radius-sm: calc(var(--radius) * 0.6);

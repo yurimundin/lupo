@@ -22,10 +22,11 @@ export function VaultLayout() {
       <VaultHeader />
       <KeyFileBanner />
       {/* gridTemplateColumns inline porque Tailwind 4 não detecta esta classe arbitrária no scan estático.
-          Ver CLAUDE.md §12 — Bug do scanner Tailwind 4 com arbitrary grid-cols. */}
+          Ver CLAUDE.md §12 — Bug do scanner Tailwind 4 com arbitrary grid-cols.
+          Sessão 20: dimensões 220/300 alinhadas com mockup hi-fi (antes 200/280). */}
       <div
         className="flex-1 grid overflow-hidden"
-        style={{ gridTemplateColumns: "200px 280px 1fr" }}
+        style={{ gridTemplateColumns: "220px 300px 1fr" }}
       >
         <GroupSidebar />
         <EntryList />

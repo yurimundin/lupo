@@ -1,5 +1,6 @@
-// Header global do cofre. Inclui filename, busca cross-group (Sessão 17),
-// indicadores de save/auto-lock e botão Bloquear.
+// Header global do cofre. Inclui logo + filename, busca cross-group
+// (Sessão 17), indicadores de save/auto-lock, toggle de tema (Sessão 20)
+// e botão Bloquear.
 
 import { Info, Lock as LockIcon } from "lucide-react";
 import { useState } from "react";
@@ -15,6 +16,7 @@ import {
 } from "@/stores/vault";
 
 import { AutoLockIndicator } from "./AutoLockIndicator";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function VaultHeader() {
   const filePath = useVaultStore((s) => s.filePath);
@@ -25,12 +27,20 @@ export function VaultHeader() {
 
   return (
     <header className="h-12 shrink-0 flex items-center gap-3 px-4 border-b border-border bg-bg-secondary">
-      <span
-        className="font-medium text-sm truncate max-w-[200px]"
-        title={filePath ?? ""}
-      >
-        {baseName(filePath)}
-      </span>
+      <div className="flex items-center gap-2 min-w-0">
+        <img
+          src="/secbasis-logo.png"
+          alt=""
+          className="size-5 rounded shrink-0"
+          aria-hidden="true"
+        />
+        <span
+          className="font-medium text-sm truncate max-w-[200px]"
+          title={filePath ?? ""}
+        >
+          {baseName(filePath)}
+        </span>
+      </div>
 
       <div className="flex-1 max-w-md">
         <SearchInput
@@ -61,6 +71,8 @@ export function VaultHeader() {
       </Button>
 
       <AutoLockIndicator />
+
+      <ThemeToggle />
 
       <Button
         variant="outline"
