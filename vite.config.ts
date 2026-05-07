@@ -20,6 +20,47 @@ export default defineConfig(async () => ({
     },
   },
 
+  build: {
+    rollupOptions: {
+      output: {
+        // Code-splitting via vendor chunks (S19). Tauri offline-first
+        // ganha pouco com paralelismo de download, mas split reduz
+        // parse time no boot e torna build mais granular (cresce
+        // chunk específico = sabemos qual lib mudou).
+        manualChunks: (id) => {
+          // kdbxweb + @xmldom (parser XML transitivo): cripto e
+          // parsing pesado. ~250-300 KB.
+          if (
+            id.includes("node_modules/kdbxweb") ||
+            id.includes("node_modules/@xmldom")
+          ) {
+            return "crypto";
+          }
+          // React + react-dom + scheduler (concurrent mode dep).
+          // ~120 KB. Match com "/" para não pegar react-dom etc.
+          if (
+            id.includes("node_modules/react/") ||
+            id.includes("node_modules/react-dom/") ||
+            id.includes("node_modules/scheduler")
+          ) {
+            return "react";
+          }
+          // UI primitives: radix-ui (meta) + @radix-ui/* (transitivos)
+          // + lucide-react (ícones) + sonner (toasts). ~60-100 KB.
+          if (
+            id.includes("node_modules/radix-ui") ||
+            id.includes("node_modules/@radix-ui") ||
+            id.includes("node_modules/lucide-react") ||
+            id.includes("node_modules/sonner")
+          ) {
+            return "ui-vendor";
+          }
+          // Restante (app code + outras deps) vai pro index.js
+        },
+      },
+    },
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors
