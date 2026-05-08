@@ -769,6 +769,11 @@ Repositório público: <https://github.com/yurimundin/secbasis>
 
 | Hash | Tipo | Descrição |
 |---|---|---|
+| `69def18` | feat | adopt hi-fi mockup design — theme toggle, semantic selected tokens, header polish (S20) |
+| `6286099` | build | configure tauri for alpha .exe-only distribution (S19 Bloco 4) |
+| `f905e8b` | fix | implement in-memory rollback in trash operations — move + restore (S19 Bloco 3) |
+| `1e95381` | perf | code-split bundle into vendor chunks via manualChunks (S19 Bloco 2) |
+| `9725abc` | docs | align CLAUDE.md §14 with project state through Session 18 (S19 Bloco 1) |
 | `15b30d4` | chore | add ESLint with flat config + audit existing eslint-disable comments (S18) |
 | `fc0e708` | docs | align README and CLAUDE.md §14 with project state through Session 17 (S17.5) |
 | `77e5712` | feat | real-time search across all entries (S17) |
@@ -1012,16 +1017,57 @@ de correção.
   - Convenção de supressão cravada: comentário explicativo acima
     + disable nu (sintaxe `rule -- reason` inline não funciona no
     ESLint vanilla — texto após disable é parsed como nome de regra)
+- ✅ **Sessão 19 — Quality + alpha distribution prep** (4 commits):
+  - **Bloco 1** (`9725abc`) — housekeeping documental: §14 atualizada
+    com S18 + S17.5; Defender exclusion removida (SAC + Kaspersky
+    aprenderam reputation, proteção máxima restaurada)
+  - **Bloco 2** (`1e95381`) — code-splitting via `manualChunks`:
+    bundle dividido em 4 chunks (crypto/react/ui-vendor/index),
+    maior chunk reduzido de 658 KB → 203 KB (-69%), warning Vite
+    "chunks > 500 KB" resolvido. Estratégia: função em vez de objeto
+    para pegar `radix-ui` meta-package + `@radix-ui/*` transitivos.
+    Trade-off Tauri offline-first documentado (ganho marginal vs web
+    pública, mas reduz parse time no boot e melhora build observability)
+  - **Bloco 3** (`f905e8b`) — rollback in-memory em operações de
+    Lixeira (TODO Sessão 6 fechado parcialmente): `moveEntryToRecycleBin`
+    e `restoreEntryFromRecycleBin` agora revertem a mutação in-place
+    quando `saveVault` falha. Padrão: snapshot `entry.parentGroup`
+    antes do `kdbx.move`, revert no caminho de erro com defesa
+    `if (originalParent)`. Edge case Lixeira recém-criada documentado
+    como aceito (kdbxweb sem `destroyRecycleBin`, estado válido KDBX).
+    `emptyRecycleBin` permanece sem rollback (kdbxweb tombstone API
+    requer pesquisa, sessão futura)
+  - **Bloco 4** (`6286099`) — alpha .exe-only Windows distribution:
+    `identifier` mudou de `com.secbasis.app` (placeholder) para
+    `app.basis.sec` (reverse-DNS de `basis.app.br`); `bundle.targets`
+    cravado em `["msi"]` para uso futuro; `bundle.active: false`
+    desativa bundling MSI (que rejeita pre-release SemVer `-alpha`),
+    `tauri build` agora produz só `secbasis.exe` 12 MB. Para reativar
+    bundling no 1.0+: bump SemVer para versão numérica e flip
+    `active: true`
+- ✅ **Sessão 20 — Adoção visual completa do mockup hi-fi** (`69def18`):
+  - `ThemeToggle` novo: toggle light/dark via `lib/theme.ts` próprio
+    + `MutationObserver` (sistema standalone, não usa `next-themes`)
+  - Tokens semânticos S20 em `App.css`: `--selected-bg`, `--selected-fg`,
+    `--brand-primary/accent/tertiary/soft`, com overrides em `.dark`
+  - `VaultLayout` grid: 220px / 300px / 1fr (era 200/280)
+  - `VaultHeader` polish: posição do `ThemeToggle`, AutoLockIndicator pill
+  - `GroupTreeItem` adotou tokens selected (`bg-selected`, `text-selected-foreground`)
+  - 7 arquivos, +131/-27
+  - Pendência limpável identificada: `next-themes` é dead dep
+    (importado em zero arquivos TS, presente em deps por scaffolding shadcn antigo)
 
-**Próximo:** Sessão 19 — trabalho de qualidade (code-splitting do
-bundle ~565 KB, rollback in-memory em erros de save) ou trabalho
-documental. Pendências abertas: empacotamento Windows (sessão
-dedicada, ver §32), major upgrades de deps em sessões separadas
-(plugin-react 4→6, vite 7→8, typescript 5.8→6.0 — investigação na
-S19 confirmou que TS 6.0 é bridge agressivo com `strict: true` por
-padrão e várias mudanças silenciosas; merece sessão dedicada
-exclusiva). Validação diferida: ativar branch protection com 3 jobs
-obrigatórios após 1-2 semanas (decisão da Sessão 13).
+**Próximo:** Sessão 21 — feature work (criar pasta novo via botão
+"+" no header da sidebar + Powered by BasisApp clicável + housekeeping
+S19 + S20 documental). Pendências abertas: context menu para grupos
+com operações completas (criar/renomear/deletar — Sessão 22 dedicada),
+`emptyRecycleBin` rollback (kdbxweb tombstone API, sessão dedicada),
+VM validation do `.exe` alpha gerado em S19, empacotamento Windows
+real (1.0+ com cert, ver §32), major upgrades de deps em sessões
+separadas (plugin-react 4→6, vite 7→8, typescript 5.8→6.0). Pendência
+limpável: remover `next-themes` do `package.json` (dead dep
+identificada na S21). Validação diferida: ativar branch protection
+com 3 jobs obrigatórios após 1-2 semanas (decisão da Sessão 13).
 
 ---
 
