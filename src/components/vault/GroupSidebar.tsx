@@ -11,19 +11,26 @@
 // ← colapsa (ou sobe pro pai se já colapsado). Padrão alinhado com
 // VS Code Explorer / KeePassXC.
 
-import { useEffect, useMemo, useRef } from "react";
+import type { KdbxGroup } from "kdbxweb";
+import { Plus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PoweredByBasis } from "@/components/layout/PoweredByBasis";
+import { Button } from "@/components/ui/button";
+import { useCreateGroup } from "@/hooks/useCreateGroup";
 import { confirmDialog } from "@/lib/confirm";
 import { useSettingsStore } from "@/stores/settings";
 import {
   type GroupTreeNode,
+  findGroupByUuidIdInDb,
   getHasUnsavedChanges,
   useGroupTree,
+  useRecycleBinUuidId,
   useVaultStore,
 } from "@/stores/vault";
 
 import { GroupTreeItem } from "./GroupTreeItem";
+import { NewGroupDialog } from "./NewGroupDialog";
 
 interface FlatNode {
   node: GroupTreeNode;
@@ -99,6 +106,62 @@ export function GroupSidebar() {
     () => flattenVisible(tree, (uuid) => expandedSet.has(uuid)),
     [tree, expandedSet],
   );
+
+  // ----- S24 Bloco 3.D: criação de grupo via header "+" ---------------------
+  const kdbx = useVaultStore((s) => s.kdbx);
+  const recycleBinUuidId = useRecycleBinUuidId();
+  const createGroup = useCreateGroup();
+  const [isNewGroupOpen, setIsNewGroupOpen] = useState(false);
+
+  // Resolver parent: selectedGroup ou root como fallback (vault recém-aberto).
+  const rootGroup = kdbx?.getDefaultGroup() ?? null;
+  const selectedGroup =
+    kdbx && selectedGroupUuid
+      ? findGroupByUuidIdInDb(kdbx, selectedGroupUuid)
+      : null;
+
+  // Walk-up para detectar se o grupo selecionado é (ou descende da) Lixeira.
+  // Sem helper exportado para isso (existe `useIsCurrentGroupRecycleBin` mas
+  // é hook, não pode ser chamado dentro de outra função). Inline aqui.
+  function isInRecycleBinSubtree(group: KdbxGroup | null): boolean {
+    if (!group || !recycleBinUuidId) return false;
+    let current: KdbxGroup | undefined = group;
+    while (current) {
+      if (current.uuid.id === recycleBinUuidId) return true;
+      current = current.parentGroup;
+    }
+    return false;
+  }
+
+  const selectedIsRecycleBin = isInRecycleBinSubtree(selectedGroup);
+  const targetParent = selectedGroup ?? rootGroup;
+  const targetParentIsRoot =
+    !!targetParent && targetParent.uuid.id === rootGroup?.uuid.id;
+  const canCreateGroup = !!targetParent && !selectedIsRecycleBin && !!kdbx;
+
+  /**
+   * Handler de confirmação do NewGroupDialog: chama o hook de criação e,
+   * em sucesso, garante que o `targetParent` esteja expandido na sidebar
+   * (UX: usuário precisa ver o filho recém-criado).
+   */
+  async function handleCreateGroup(name: string): Promise<boolean> {
+    if (!targetParent) return false;
+    const ok = await createGroup(targetParent, name);
+    if (ok) {
+      const filePath = useVaultStore.getState().lastFilePath;
+      if (
+        filePath &&
+        !useSettingsStore
+          .getState()
+          .isGroupExpanded(filePath, targetParent.uuid.id)
+      ) {
+        useSettingsStore
+          .getState()
+          .toggleGroupExpanded(filePath, targetParent.uuid.id);
+      }
+    }
+    return ok;
+  }
 
   /**
    * Confirma com o usuário antes de descartar mudanças não-salvas.
@@ -201,6 +264,26 @@ export function GroupSidebar() {
       className="border-r border-border flex flex-col h-full"
       onKeyDown={(e) => void handleKeyDown(e)}
     >
+      <header className="shrink-0 px-3 py-2 border-b border-border flex items-center justify-between">
+        <span className="text-xs text-muted-foreground font-medium">
+          Grupos
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          disabled={!canCreateGroup}
+          onClick={() => setIsNewGroupOpen(true)}
+          title={
+            selectedIsRecycleBin
+              ? "Não é possível criar grupo na Lixeira"
+              : "Criar novo grupo"
+          }
+          aria-label="Criar novo grupo"
+        >
+          <Plus className="size-4" />
+        </Button>
+      </header>
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
         {tree.map((rootNode) => (
           <GroupTreeItem
@@ -216,6 +299,15 @@ export function GroupSidebar() {
         ))}
       </div>
       <PoweredByBasis />
+      {targetParent && (
+        <NewGroupDialog
+          open={isNewGroupOpen}
+          onOpenChange={setIsNewGroupOpen}
+          parent={targetParent}
+          parentIsRoot={targetParentIsRoot}
+          onConfirm={handleCreateGroup}
+        />
+      )}
     </aside>
   );
 }

@@ -572,6 +572,61 @@ export async function emptyRecycleBin(
   }
 }
 
+/** Resultado de `createGroupInVault` — grupo criado ou erro. */
+export type CreateGroupResult =
+  | { ok: true; group: KdbxGroup; durationMs: number }
+  | { ok: false; error: string };
+
+/**
+ * Cria um novo grupo dentro de um grupo parent, persiste no arquivo,
+ * e faz rollback in-memory se o save falhar.
+ *
+ * Padrão S19 Bloco 3 (rollback in-memory): snapshot antes da mutação +
+ * revert no caminho de erro. Aqui o snapshot é trivial — só remover o
+ * grupo recém-criado de `parent.groups` no rollback (não há side
+ * effects adicionais como `meta.recycleBinUuid` do move).
+ *
+ * Validações de nome (não-vazio, max chars, duplicata entre siblings)
+ * ficam no caller (UI dialog em `GroupSidebar`). Helper assume input
+ * já validado.
+ *
+ * @returns `CreateGroupResult` — `{ ok: true, group, durationMs }` no
+ *   sucesso, `{ ok: false, error }` em falha. NÃO lança — sempre
+ *   retorna resultado.
+ */
+export async function createGroupInVault(
+  filePath: string,
+  kdbx: Kdbx,
+  parent: KdbxGroup,
+  name: string,
+): Promise<CreateGroupResult> {
+  if (!filePath || !kdbx || !parent || !name) {
+    return { ok: false, error: "Estado inválido para criar grupo." };
+  }
+
+  try {
+    // Mutação: kdbxweb adiciona ao parent.groups internamente.
+    const newGroup = kdbx.createGroup(parent, name);
+
+    const result = await saveVault(filePath, kdbx);
+    if (!result.ok) {
+      // Rollback in-memory: remover o grupo recém-criado de parent.groups.
+      const idx = parent.groups.indexOf(newGroup);
+      if (idx >= 0) {
+        parent.groups.splice(idx, 1);
+      }
+      return { ok: false, error: result.error };
+    }
+
+    return { ok: true, group: newGroup, durationMs: result.durationMs };
+  } catch (e) {
+    return {
+      ok: false,
+      error: `Erro ao criar grupo: ${describeError(e)}`,
+    };
+  }
+}
+
 // ----- Helpers internos de I/O e erro ---------------------------------------
 
 async function readFileBytes(filePath: string): Promise<Uint8Array> {
