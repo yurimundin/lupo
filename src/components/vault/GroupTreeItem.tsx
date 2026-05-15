@@ -15,9 +15,12 @@
 //     o ícone Folder dos pares que têm chevron.
 
 import { ChevronDown, ChevronRight, Folder, Trash2 } from "lucide-react";
+import type { KdbxGroup } from "kdbxweb";
 
 import { cn } from "@/lib/utils";
 import type { GroupTreeNode } from "@/stores/vault";
+
+import { GroupContextMenu } from "./GroupContextMenu";
 
 const INDENT_PX_PER_LEVEL = 12;
 const INDENT_PX_MAX = 96;
@@ -31,6 +34,11 @@ export interface GroupTreeItemProps {
   onSelect: (uuid: string) => void;
   onToggleExpanded: (uuid: string) => void;
   isExpanded: (uuid: string) => boolean;
+  recycleBinUuidId: string | null;
+  getGroupByUuid: (uuid: string) => KdbxGroup | null;
+  onCreateSubgroup: (group: KdbxGroup) => void;
+  onRename: (group: KdbxGroup) => void;
+  onDelete: (group: KdbxGroup) => void;
 }
 
 export function GroupTreeItem({
@@ -41,6 +49,11 @@ export function GroupTreeItem({
   onSelect,
   onToggleExpanded,
   isExpanded,
+  recycleBinUuidId,
+  getGroupByUuid,
+  onCreateSubgroup,
+  onRename,
+  onDelete,
 }: GroupTreeItemProps) {
   const selected = node.uuid === selectedGroupUuid;
   const hasChildren = node.children.length > 0;
@@ -52,62 +65,88 @@ export function GroupTreeItem({
 
   const Icon = node.isRecycleBin ? Trash2 : Folder;
 
-  return (
-    <div>
-      <div
-        className={cn(
-          "group flex items-center gap-1 pr-2 py-1.5 rounded-md text-sm transition-colors",
-          selected
-            ? "bg-selected font-semibold text-selected-foreground"
-            : "hover:bg-muted text-foreground",
-        )}
-        style={{ paddingLeft: `${indentPx}px` }}
-        data-group-uuid={node.uuid}
-      >
-        {forceExpanded ? (
-          // Nó raiz: sem chevron, apenas espaço reservado pra alinhar
-          // ícones de Folder dos filhos. Largura igual ao chevron-button.
-          <span className="size-4 shrink-0" aria-hidden="true" />
-        ) : hasChildren ? (
-          <button
-            type="button"
-            onClick={() => onToggleExpanded(node.uuid)}
-            className="size-4 shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-sm"
-            aria-label={expanded ? "Colapsar grupo" : "Expandir grupo"}
-            tabIndex={-1}
-          >
-            {expanded ? (
-              <ChevronDown className="size-3" />
-            ) : (
-              <ChevronRight className="size-3" />
-            )}
-          </button>
-        ) : (
-          // Folha (sem children): espaço reservado pra manter alinhamento
-          // do ícone Folder com pares que têm chevron.
-          <span className="size-4 shrink-0" aria-hidden="true" />
-        )}
+  // Resolver KdbxGroup do nó para o context menu. Defense in depth:
+  // se a árvore estiver dessincronizada com kdbx, retorna null e o
+  // wrapper é omitido (row segue funcional sem menu).
+  //
+  // Performance: chamado a cada render. Para árvores típicas KDBX
+  // (<500 grupos), o walk recursivo de findGroupByUuidIdInDb é
+  // aceitável. Otimização (memoização ou index map) só se a árvore
+  // crescer ordens de magnitude.
+  const group = getGroupByUuid(node.uuid);
 
+  const rowContent = (
+    <div
+      className={cn(
+        "group flex items-center gap-1 pr-2 py-1.5 rounded-md text-sm transition-colors",
+        selected
+          ? "bg-selected font-semibold text-selected-foreground"
+          : "hover:bg-muted text-foreground",
+      )}
+      style={{ paddingLeft: `${indentPx}px` }}
+      data-group-uuid={node.uuid}
+    >
+      {forceExpanded ? (
+        // Nó raiz: sem chevron, apenas espaço reservado pra alinhar
+        // ícones de Folder dos filhos. Largura igual ao chevron-button.
+        <span className="size-4 shrink-0" aria-hidden="true" />
+      ) : hasChildren ? (
         <button
           type="button"
-          onClick={() => onSelect(node.uuid)}
-          className="flex-1 min-w-0 flex items-center gap-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-sm"
-          data-group-name-uuid={node.uuid}
+          onClick={() => onToggleExpanded(node.uuid)}
+          className="size-4 shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-sm"
+          aria-label={expanded ? "Colapsar grupo" : "Expandir grupo"}
+          tabIndex={-1}
         >
-          <Icon
-            className={cn(
-              "size-4 shrink-0",
-              node.isRecycleBin
-                ? "text-muted-foreground"
-                : "text-brand-tertiary",
-            )}
-          />
-          <span className="flex-1 truncate">{node.name}</span>
-          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-            {node.entryCount}
-          </span>
+          {expanded ? (
+            <ChevronDown className="size-3" />
+          ) : (
+            <ChevronRight className="size-3" />
+          )}
         </button>
-      </div>
+      ) : (
+        // Folha (sem children): espaço reservado pra manter alinhamento
+        // do ícone Folder com pares que têm chevron.
+        <span className="size-4 shrink-0" aria-hidden="true" />
+      )}
+
+      <button
+        type="button"
+        onClick={() => onSelect(node.uuid)}
+        className="flex-1 min-w-0 flex items-center gap-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-sm"
+        data-group-name-uuid={node.uuid}
+      >
+        <Icon
+          className={cn(
+            "size-4 shrink-0",
+            node.isRecycleBin
+              ? "text-muted-foreground"
+              : "text-brand-tertiary",
+          )}
+        />
+        <span className="flex-1 truncate">{node.name}</span>
+        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+          {node.entryCount}
+        </span>
+      </button>
+    </div>
+  );
+
+  return (
+    <div>
+      {group ? (
+        <GroupContextMenu
+          group={group}
+          recycleBinUuidId={recycleBinUuidId}
+          onCreateSubgroup={onCreateSubgroup}
+          onRename={onRename}
+          onDelete={onDelete}
+        >
+          {rowContent}
+        </GroupContextMenu>
+      ) : (
+        rowContent
+      )}
 
       {showChildren && (
         <div>
@@ -120,6 +159,11 @@ export function GroupTreeItem({
               onSelect={onSelect}
               onToggleExpanded={onToggleExpanded}
               isExpanded={isExpanded}
+              recycleBinUuidId={recycleBinUuidId}
+              getGroupByUuid={getGroupByUuid}
+              onCreateSubgroup={onCreateSubgroup}
+              onRename={onRename}
+              onDelete={onDelete}
             />
           ))}
         </div>

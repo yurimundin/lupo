@@ -13,11 +13,13 @@
 
 import type { KdbxGroup } from "kdbxweb";
 import { Plus } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { PoweredByBasis } from "@/components/layout/PoweredByBasis";
 import { Button } from "@/components/ui/button";
 import { useCreateGroup } from "@/hooks/useCreateGroup";
+import { useDeleteGroup } from "@/hooks/useDeleteGroup";
+import { useRenameGroup } from "@/hooks/useRenameGroup";
 import { confirmDialog } from "@/lib/confirm";
 import { useSettingsStore } from "@/stores/settings";
 import {
@@ -31,6 +33,7 @@ import {
 
 import { GroupTreeItem } from "./GroupTreeItem";
 import { NewGroupDialog } from "./NewGroupDialog";
+import { RenameGroupDialog } from "./RenameGroupDialog";
 
 interface FlatNode {
   node: GroupTreeNode;
@@ -111,7 +114,18 @@ export function GroupSidebar() {
   const kdbx = useVaultStore((s) => s.kdbx);
   const recycleBinUuidId = useRecycleBinUuidId();
   const createGroup = useCreateGroup();
+  const renameGroup = useRenameGroup();
+  const deleteGroup = useDeleteGroup();
   const [isNewGroupOpen, setIsNewGroupOpen] = useState(false);
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [renameTargetGroup, setRenameTargetGroup] = useState<KdbxGroup | null>(
+    null,
+  );
+  // Override do targetParent quando "Novo subgrupo" vem do context menu
+  // (em vez do botão "+" do header). Reset ao fechar NewGroupDialog.
+  const [ctxCreateTarget, setCtxCreateTarget] = useState<KdbxGroup | null>(
+    null,
+  );
 
   // Resolver parent: selectedGroup ou root como fallback (vault recém-aberto).
   const rootGroup = kdbx?.getDefaultGroup() ?? null;
@@ -119,6 +133,15 @@ export function GroupSidebar() {
     kdbx && selectedGroupUuid
       ? findGroupByUuidIdInDb(kdbx, selectedGroupUuid)
       : null;
+
+  // Getter para passar como prop ao GroupTreeItem. Resolve KdbxGroup
+  // a partir de uuid (lookup via findGroupByUuidIdInDb). Memoizado
+  // com deps [kdbx] para estabilidade da prop.
+  const getGroupByUuid = useCallback(
+    (uuid: string): KdbxGroup | null =>
+      kdbx ? findGroupByUuidIdInDb(kdbx, uuid) : null,
+    [kdbx],
+  );
 
   // Walk-up para detectar se o grupo selecionado é (ou descende da) Lixeira.
   // Sem helper exportado para isso (existe `useIsCurrentGroupRecycleBin` mas
@@ -134,7 +157,10 @@ export function GroupSidebar() {
   }
 
   const selectedIsRecycleBin = isInRecycleBinSubtree(selectedGroup);
-  const targetParent = selectedGroup ?? rootGroup;
+  // Precedência: context menu > seleção atual > root.
+  // ctxCreateTarget é setado quando "Novo subgrupo" vem do context menu,
+  // permitindo criar subgrupo de um grupo específico sem mudar seleção.
+  const targetParent = ctxCreateTarget ?? selectedGroup ?? rootGroup;
   const targetParentIsRoot =
     !!targetParent && targetParent.uuid.id === rootGroup?.uuid.id;
   const canCreateGroup = !!targetParent && !selectedIsRecycleBin && !!kdbx;
@@ -161,6 +187,31 @@ export function GroupSidebar() {
       }
     }
     return ok;
+  }
+
+  // Handler do context menu: criar subgrupo de um grupo específico
+  // (em vez do selectedGroup, que é o default do botão "+" do header).
+  function handleCreateSubgroup(group: KdbxGroup) {
+    setCtxCreateTarget(group);
+    setIsNewGroupOpen(true);
+  }
+
+  // Handler do context menu: abrir dialog de renomear.
+  function handleRename(group: KdbxGroup) {
+    setRenameTargetGroup(group);
+    setIsRenameOpen(true);
+  }
+
+  // Handler do context menu: mover grupo para Lixeira.
+  // useDeleteGroup já cuida de confirmDialog + toast + selectGroup(parent).
+  async function handleDelete(group: KdbxGroup) {
+    await deleteGroup(group);
+  }
+
+  // Handler do RenameGroupDialog: confirmar novo nome.
+  async function handleConfirmRename(newName: string): Promise<boolean> {
+    if (!renameTargetGroup) return false;
+    return renameGroup(renameTargetGroup, newName);
   }
 
   /**
@@ -295,6 +346,11 @@ export function GroupSidebar() {
             onSelect={(uuid) => void handleSelect(uuid)}
             onToggleExpanded={handleToggleExpanded}
             isExpanded={isExpanded}
+            recycleBinUuidId={recycleBinUuidId}
+            getGroupByUuid={getGroupByUuid}
+            onCreateSubgroup={handleCreateSubgroup}
+            onRename={handleRename}
+            onDelete={(group) => void handleDelete(group)}
           />
         ))}
       </div>
@@ -302,10 +358,24 @@ export function GroupSidebar() {
       {targetParent && (
         <NewGroupDialog
           open={isNewGroupOpen}
-          onOpenChange={setIsNewGroupOpen}
+          onOpenChange={(open) => {
+            setIsNewGroupOpen(open);
+            if (!open) setCtxCreateTarget(null);
+          }}
           parent={targetParent}
           parentIsRoot={targetParentIsRoot}
           onConfirm={handleCreateGroup}
+        />
+      )}
+      {renameTargetGroup && (
+        <RenameGroupDialog
+          open={isRenameOpen}
+          onOpenChange={(open) => {
+            setIsRenameOpen(open);
+            if (!open) setRenameTargetGroup(null);
+          }}
+          group={renameTargetGroup}
+          onConfirm={handleConfirmRename}
         />
       )}
     </aside>
