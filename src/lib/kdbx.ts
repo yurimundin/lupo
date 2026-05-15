@@ -627,6 +627,171 @@ export async function createGroupInVault(
   }
 }
 
+/** Resultado de `renameGroupInVault` — sucesso ou erro. */
+export type RenameGroupResult =
+  | { ok: true; durationMs: number }
+  | { ok: false; error: string };
+
+/**
+ * Renomeia um grupo (set name + update times) e persiste no arquivo,
+ * com rollback in-memory do nome se o save falhar.
+ *
+ * Padrão S19 Bloco 3 (rollback in-memory): snapshot do oldName antes
+ * da mutação + revert no caminho de erro.
+ *
+ * Observação sutil sobre `times.update()`: o método altera
+ * `lastModificationTime` em memória. Em caso de falha, fazemos
+ * rollback do `name` mas NÃO do `times` — rationale:
+ * (1) o arquivo persistido continua com times antigo (save falhou),
+ * (2) UI não exibe `lastModificationTime` para usuário,
+ * (3) próximo save bem-sucedido vai persistir times consistente.
+ * Rollback completo de times exigiria snapshot de KdbxTimes inteiro
+ * (mais complexo, ganho operacional nulo).
+ *
+ * Validações de nome (não-vazio, max chars, duplicata entre siblings)
+ * ficam no caller (UI dialog). Helper assume input já validado.
+ *
+ * @returns `RenameGroupResult` — `{ ok: true, durationMs }` no
+ *   sucesso, `{ ok: false, error }` em falha. NÃO lança — sempre
+ *   retorna resultado.
+ */
+export async function renameGroupInVault(
+  filePath: string,
+  kdbx: Kdbx,
+  group: KdbxGroup,
+  newName: string,
+): Promise<RenameGroupResult> {
+  if (!filePath || !kdbx || !group || !newName) {
+    return { ok: false, error: "Estado inválido para renomear grupo." };
+  }
+
+  // Snapshot do nome para rollback em caso de save fail.
+  const oldName = group.name;
+
+  try {
+    // Mutação: set name + update times (kdbxweb convention).
+    group.name = newName;
+    group.times.update();
+
+    const result = await saveVault(filePath, kdbx);
+    if (!result.ok) {
+      // Rollback in-memory do nome. Times mantém update (ver docstring).
+      group.name = oldName;
+      return { ok: false, error: result.error };
+    }
+
+    return { ok: true, durationMs: result.durationMs };
+  } catch (e) {
+    // Rollback do nome em exceção também.
+    group.name = oldName;
+    return {
+      ok: false,
+      error: `Erro ao renomear grupo: ${describeError(e)}`,
+    };
+  }
+}
+
+/** Resultado de `moveGroupToRecycleBin` — sucesso ou erro. */
+export type MoveGroupResult =
+  | { ok: true; durationMs: number }
+  | { ok: false; error: string };
+
+/**
+ * Move um grupo (e todos os seus descendentes) para a Lixeira do
+ * cofre, persiste no arquivo, e faz rollback in-memory se o save
+ * falhar.
+ *
+ * Padrão S19 Bloco 3 (rollback in-memory): snapshot do `originalParent`
+ * antes da mutação + revert no caminho de erro.
+ *
+ * kdbxweb cascade: `kdbx.move(group, recycleBin)` move o subtree
+ * inteiro (todos os descendentes — grupos + entradas — seguem o
+ * parent automaticamente). Comportamento KDBX padrão, sem código
+ * adicional de cascade.
+ *
+ * Edge case (consistente com `moveEntryToRecycleBin`): se a Lixeira
+ * for criada implicitamente por `kdbx.move` (vault sem Lixeira
+ * anterior), ela permanece no cofre mesmo após rollback do grupo.
+ * kdbxweb não expõe `destroyRecycleBin` — estado válido KDBX, aceito
+ * como trade-off.
+ *
+ * Validações de elegibilidade (não pode mover root, não pode mover
+ * a própria Lixeira, não pode mover grupo já dentro da Lixeira)
+ * ficam no caller (UI context menu). Helper assume input já validado.
+ *
+ * @returns `MoveGroupResult` — `{ ok: true, durationMs }` no
+ *   sucesso, `{ ok: false, error }` em falha. NÃO lança — sempre
+ *   retorna resultado.
+ */
+export async function moveGroupToRecycleBin(
+  filePath: string,
+  kdbx: Kdbx,
+  group: KdbxGroup,
+): Promise<MoveGroupResult> {
+  if (!filePath || !kdbx || !group) {
+    return { ok: false, error: "Estado inválido para mover grupo para a lixeira." };
+  }
+
+  // Snapshot do parent original para rollback em caso de save fail.
+  const originalParent = group.parentGroup;
+
+  try {
+    // Lookup da Lixeira via guard de UUID (consistente com
+    // moveEntryToRecycleBin).
+    let recycleBin: KdbxGroup | undefined;
+    const existingUuid = kdbx.meta.recycleBinUuid;
+    if (existingUuid && !existingUuid.empty) {
+      recycleBin = kdbx.getGroup(existingUuid);
+    }
+
+    // Se não existir, criar explicitamente.
+    if (!recycleBin) {
+      kdbx.createRecycleBin();
+      const newUuid = kdbx.meta.recycleBinUuid;
+      if (newUuid && !newUuid.empty) {
+        recycleBin = kdbx.getGroup(newUuid);
+      }
+      if (!recycleBin) {
+        return {
+          ok: false,
+          error: "Falha ao criar a Lixeira do cofre.",
+        };
+      }
+    }
+
+    // Mutação: move o grupo (e descendentes) para a Lixeira.
+    kdbx.move(group, recycleBin);
+
+    const result = await saveVault(filePath, kdbx);
+    if (!result.ok) {
+      // Rollback in-memory: restaurar o grupo ao parent original.
+      // Defesa: se originalParent é undefined (grupo era root), não
+      // tentar mover de volta (não deveria acontecer pelas validações
+      // do caller, mas seguro).
+      if (originalParent) {
+        kdbx.move(group, originalParent);
+      }
+      return { ok: false, error: result.error };
+    }
+
+    return { ok: true, durationMs: result.durationMs };
+  } catch (e) {
+    // Rollback em exceção também.
+    if (originalParent) {
+      try {
+        kdbx.move(group, originalParent);
+      } catch {
+        // Rollback secundário falhou — estado inconsistente,
+        // mas erro original do try é mais relevante.
+      }
+    }
+    return {
+      ok: false,
+      error: `Erro ao mover grupo para a lixeira: ${describeError(e)}`,
+    };
+  }
+}
+
 // ----- Helpers internos de I/O e erro ---------------------------------------
 
 async function readFileBytes(filePath: string): Promise<Uint8Array> {
