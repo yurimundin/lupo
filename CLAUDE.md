@@ -769,6 +769,10 @@ Repositório público: <https://github.com/yurimundin/secbasis>
 
 | Hash | Tipo | Descrição |
 |---|---|---|
+| `70e1e23` | feat(vault) | add right-click context menu for groups (S26) |
+| `24246fa` | feat(vault) | add groundwork for group rename/delete (S25 partial) |
+| `ad8e79e` | feat(vault) | add "Criar pasta nova" via "+" button in sidebar header (S24) |
+| `0f46473` | docs | align CLAUDE.md §14 + §28 reinforce through Session 22 (S22 hk) |
 | `5a117de` | chore | bump tauri from 2.11.0 to 2.11.1 in /src-tauri (S22 Bloco 3) |
 | `bdad9f7` | chore | bump hono from 4.12.16 to 4.12.18 (S22 Bloco 2) |
 | `87929b3` | chore | bump fast-uri from 3.1.1 to 3.1.2 (S22 Bloco 1) |
@@ -1101,20 +1105,119 @@ de correção.
   - 4 catches críticos consolidados em §28 (reforço S22)
   - Audit pós-S22: 2 moderate (ip-address + express-rate-limit,
     ambas §30 dispensadas conscientemente)
+- 🚧 **Sessão 23 — Alpha distributable** (não-realizada): planejada
+  no "Próximo:" da S22, deferida para sessão futura. Trabalho
+  previsto: ZIP do `secbasis.exe` 12 MB + GitHub Release + README
+  com SmartScreen warning para testers conhecidos.
+- ✅ **Sessão 24 — Criar pasta nova via botão "+" no header** (`ad8e79e`):
+  - Header novo no GroupSidebar com label "Grupos" + botão "+"
+    (variant ghost, size icon, ícone Plus do lucide-react)
+  - `NewGroupDialog.tsx` componente novo: validações em tempo real
+    (não-vazio após trim, max 64 chars, sem duplicata case-insensitive
+    entre siblings); Enter submete; Esc cancela; reset on open;
+    `parentIsRoot` controla se exibe "Subgrupo de:"
+  - `useCreateGroup.ts` hook novo seguindo padrão §15: selectors
+    atômicos + useCallback; toast verde/vermelho; incrementVaultVersion;
+    selectGroup(newUuid) para feedback visual
+  - `createGroupInVault` em `lib/kdbx.ts`: rollback in-memory padrão
+    §19 Bloco 3 (remove o grupo recém-criado de parent.groups se save
+    falhar); `kdbx.createGroup(parent, name)` mutação in-place
+  - "+" disabled quando grupo selecionado é (ou descende de) Lixeira
+    via walk-up `parentGroup.uuid.id === recycleBinUuidId`
+  - Auto-expand do parent após sucesso (UX: usuário precisa ver o
+    filho recém-criado)
+  - Fecha Bloco 3 da S21 — pendência aberta há 3 sessões.
+- ✅ **Sessão 25 — Groundwork rename/delete de grupos** (`24246fa`):
+  - Foundation para context menu (UI vem na S26). 4 arquivos novos +
+    1 modificado, +601 linhas.
+  - `src/components/ui/context-menu.tsx` — shadcn ContextMenu
+    scaffoldado via `npx shadcn add context-menu` (15 exports, sem
+    dep direta — usa `radix-ui` meta-package transitivo)
+  - `useRenameGroup.ts` — espelha padrão useCreateGroup mas SEM
+    confirmDialog (rename é benigno) e SEM selectGroup (mesmo uuid)
+  - `useDeleteGroup.ts` — espelha useDeleteEntry com confirmDialog
+    variante "danger"; mensagem inclui contagem de entradas afetadas
+    (`countEntriesInSubtree` inline walk recursivo); selectGroup
+    sobe pro parent após sucesso
+  - `renameGroupInVault` em `lib/kdbx.ts`: snapshot do oldName +
+    `group.times.update()`; rollback do nome no save fail (times
+    update é rollback parcial aceito — file persistido mantém times
+    antigo, UX irrelevante)
+  - `moveGroupToRecycleBin` em `lib/kdbx.ts`: clone funcional de
+    `moveEntryToRecycleBin` com `kdbx.move<T extends KdbxEntry |
+    KdbxGroup>()`; cascade automático (kdbxweb move subtree inteiro)
+  - Catch de TSC strict: `kdbx.getGroup(meta.recycleBinUuid)` exige
+    guard `!existingUuid.empty` para narrowing `KdbxUuid | undefined
+    → KdbxUuid` (lição: replicar template existente quando padrão
+    está cravado)
+  - Catch de lint: `KdbxEntry` importado mas não usado removido
+    durante review pré-validação
+  - Catch de tipo: `selectGroup` exige `string` (não `string | null`),
+    diferente de `selectEntry` que aceita null — conditional call
+    `if (parentUuidId)` garante narrowing
+- ✅ **Sessão 26 — Context menu completo de grupos** (`70e1e23`):
+  - UI integration completa do groundwork S25. 4 arquivos +422/-54.
+  - `RenameGroupDialog.tsx` — espelha NewGroupDialog mas pré-popula
+    com nome atual; nova validação isUnchanged (botão disabled +
+    hint suave `text-muted-foreground` sem `role="alert"`); duplicate
+    check exclui o próprio grupo via `.filter(g => g !== group)`
+  - `GroupContextMenu.tsx` — wrapper com 3 estados de visibilidade:
+    Lixeira/descendente sem menu (retorna children direto); root
+    apenas "Novo subgrupo"; normal 3 itens (Novo subgrupo / Renomear /
+    separator / Mover para Lixeira em vermelho)
+  - `GroupTreeItem.tsx` ganha 5 props novas (`recycleBinUuidId`,
+    `getGroupByUuid`, 3 callbacks); refatora row para `rowContent`
+    variável + wrap condicional com `GroupContextMenu` se group
+    resolver; recursão propaga props
+  - `GroupSidebar.tsx` wiring completo: 4 handlers novos
+    (`handleCreateSubgroup`, `handleRename`, `handleDelete`,
+    `handleConfirmRename`); state `ctxCreateTarget` override do
+    `targetParent` para "Novo subgrupo" via menu não mudar seleção;
+    `getGroupByUuid` useCallback memoizado; renderiza
+    `RenameGroupDialog` condicional
+  - Padrão `onDelete={(group) => void handleDelete(group)}` evita
+    `@typescript-eslint/no-misused-promises` (mesmo wrap que `onSelect`)
+  - Smoke flow manual: 8 cenários validados (menu por estado,
+    create-subgroup com auto-expand, rename com isUnchanged/duplicate,
+    delete com confirmDialog/parent-selection, cascade, persistência)
+  - Fecha pendência "context menu para grupos com operações
+    completas" do "Próximo:" da S22.
 
-**Próximo:** Sessão 23 — Alpha distributable for testers (zip do
-`secbasis.exe` 12 MB gerado em S19 Bloco 4 + GitHub Release + README
-explicando SmartScreen warning para audiência de 1-3 testers
-conhecidos). Pendências abertas: context menu para grupos com
-operações completas (criar/renomear/deletar — Sessão 24 dedicada),
-criar pasta nova (Bloco 3 da S21 não-feito), `emptyRecycleBin`
-rollback (kdbxweb tombstone API, sessão dedicada), VM validation
-do `.exe` alpha gerado em S19, empacotamento Windows real (1.0+
-com cert via vendor — ver §32), major upgrades de deps em sessões
-separadas (plugin-react 4→6, vite 7→8, typescript 5.8→6.0).
-Pendência limpável: remover `next-themes` do `package.json` (dead
-dep S21). Validação diferida: ativar branch protection com 3 jobs
-obrigatórios após 1-2 semanas (decisão da Sessão 13).
+**Próximo:** Sessão 28 — a decidir baseado em prioridade. Candidatos:
+Alpha distributable for testers (S23 deferida — ZIP + GitHub Release
++ README SmartScreen), Restore group from Recycle Bin (feature
+derivada da S26 fechando ciclo create/rename/delete/restore),
+`emptyRecycleBin` rollback (kdbxweb tombstone API, sessão dedicada),
+VM validation do `.exe` alpha gerado em S19, empacotamento Windows
+real (1.0+ com cert via vendor — ver §32), ou major upgrades de deps
+em sessões separadas (plugin-react 4→6, vite 7→8, typescript 5.8→6.0).
+Validação diferida: ativar branch protection com 3 jobs obrigatórios
+após 1-2 semanas (decisão da Sessão 13).
+
+**Roadmap S28a-d — Major upgrades de dev-deps (originados do PR #6
+fechado conscientemente por §28 framework):**
+
+- **S28a — TypeScript 5.8 → 6.0:** estratégia de migração para
+  `baseUrl` deprecated em `tsconfig.json` (decidir entre suprimir
+  via `ignoreDeprecations: "6.0"` ou refatorar `paths` aliases para
+  usar apenas relative paths). Sessão isolada porque afeta foundation
+  de TypeScript do projeto inteiro.
+- **S28b — ESLint 9 → 10 + @eslint/js 9 → 10 + plugin-react-hooks
+  5 → 7:** avaliar nova regra `react-hooks/set-state-in-effect`
+  (5 violações em `EntryDetail.tsx`, `EntryEditor.tsx`,
+  `NewGroupDialog.tsx`, `PasswordGenerator.tsx`) — decidir entre
+  suprimir regra (usar versão idiomática React) ou refatorar
+  sites afetados.
+- **S28c — Vite 7 → 8 + @vitejs/plugin-react 4 → 6:** maior
+  migração — remoção de Babel deps em favor de Oxc transforms.
+  Plugin-react pula major 5 (Babel-related). Provável recompilação
+  completa de assets para validar.
+- **S28d — globals 15 → 17 + eslint-plugin-react-refresh 0.4 → 0.5:**
+  bumps menores mas com peerDep coupling ao ESLint 10 (depende de
+  S28b primeiro). Schema do `globals` mudou entre versões.
+
+Cada sub-sessão da S28 tem escopo bem definido e blast radius isolado.
+Comment técnico completo preservado em PR #6 (closed).
 
 ---
 
