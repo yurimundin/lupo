@@ -39,14 +39,14 @@
     "@tauri-apps/cli": "^2.11.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^4.6.0",
+    "@vitejs/plugin-react": "^6.0.2",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.59.4",
-    "vite": "^7.0.4"
+    "vite": "^8.0.13"
   },
   "overrides": {
     "@xmldom/xmldom": "^0.8.12"
