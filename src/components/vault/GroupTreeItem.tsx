@@ -39,6 +39,7 @@ export interface GroupTreeItemProps {
   onCreateSubgroup: (group: KdbxGroup) => void;
   onRename: (group: KdbxGroup) => void;
   onDelete: (group: KdbxGroup) => void;
+  onRestore: (group: KdbxGroup) => void;
 }
 
 export function GroupTreeItem({
@@ -54,6 +55,7 @@ export function GroupTreeItem({
   onCreateSubgroup,
   onRename,
   onDelete,
+  onRestore,
 }: GroupTreeItemProps) {
   const selected = node.uuid === selectedGroupUuid;
   const hasChildren = node.children.length > 0;
@@ -141,6 +143,7 @@ export function GroupTreeItem({
           onCreateSubgroup={onCreateSubgroup}
           onRename={onRename}
           onDelete={onDelete}
+          onRestore={onRestore}
         >
           {rowContent}
         </GroupContextMenu>
@@ -164,6 +167,7 @@ export function GroupTreeItem({
               onCreateSubgroup={onCreateSubgroup}
               onRename={onRename}
               onDelete={onDelete}
+              onRestore={onRestore}
             />
           ))}
         </div>

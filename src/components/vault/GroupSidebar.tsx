@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { useCreateGroup } from "@/hooks/useCreateGroup";
 import { useDeleteGroup } from "@/hooks/useDeleteGroup";
 import { useRenameGroup } from "@/hooks/useRenameGroup";
+import { useRestoreGroup } from "@/hooks/useRestoreGroup";
 import { confirmDialog } from "@/lib/confirm";
 import { useSettingsStore } from "@/stores/settings";
 import {
@@ -116,6 +117,7 @@ export function GroupSidebar() {
   const createGroup = useCreateGroup();
   const renameGroup = useRenameGroup();
   const deleteGroup = useDeleteGroup();
+  const restoreGroup = useRestoreGroup();
   const [isNewGroupOpen, setIsNewGroupOpen] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameTargetGroup, setRenameTargetGroup] = useState<KdbxGroup | null>(
@@ -206,6 +208,12 @@ export function GroupSidebar() {
   // useDeleteGroup já cuida de confirmDialog + toast + selectGroup(parent).
   async function handleDelete(group: KdbxGroup) {
     await deleteGroup(group);
+  }
+
+  // Handler do context menu: restaurar grupo da Lixeira para o raiz.
+  // useRestoreGroup cuida de toast + selectGroup(uuid) (navega pro grupo).
+  async function handleRestore(group: KdbxGroup) {
+    await restoreGroup(group);
   }
 
   // Handler do RenameGroupDialog: confirmar novo nome.
@@ -351,6 +359,7 @@ export function GroupSidebar() {
             onCreateSubgroup={handleCreateSubgroup}
             onRename={handleRename}
             onDelete={(group) => void handleDelete(group)}
+            onRestore={(group) => void handleRestore(group)}
           />
         ))}
       </div>

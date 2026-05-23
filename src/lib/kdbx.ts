@@ -792,6 +792,84 @@ export async function moveGroupToRecycleBin(
   }
 }
 
+/** Resultado de `restoreGroupFromRecycleBin` — duração ou erro. */
+export type RestoreGroupResult =
+  | { ok: true; durationMs: number }
+  | { ok: false; error: string };
+
+/**
+ * Restaura um grupo da Lixeira (RecycleBin) para o grupo raiz do cofre.
+ *
+ * Apenas grupos diretamente filhos da Lixeira são elegíveis. Subgrupos
+ * aninhados dentro de grupos na Lixeira são movidos junto com o pai
+ * (cascade kdbxweb — mesma mecânica de `moveGroupToRecycleBin`).
+ *
+ * Comportamento alinhado com KeePassXC: grupo restaurado vai sempre
+ * para o grupo raiz. O usuário pode movê-lo depois para outro grupo.
+ *
+ * Sem `confirmDialog` no helper — restaurar é ação benigna (reverte
+ * uma deleção). Decisão UX fica no caller/hook.
+ *
+ * Persistência: chama `saveVault` (escrita atômica + backup `.bak` +
+ * magic-check, ver §17 do CLAUDE.md). NÃO lança — sempre retorna
+ * `RestoreGroupResult`.
+ *
+ * Em caso de erro de save: rollback in-memory automático — o grupo é
+ * movido de volta para a Lixeira, preservando consistência com o disco.
+ */
+export async function restoreGroupFromRecycleBin(
+  filePath: string,
+  kdbx: Kdbx,
+  group: KdbxGroup,
+): Promise<RestoreGroupResult> {
+  if (!filePath || !kdbx || !group) {
+    return { ok: false, error: "Estado inválido para restaurar grupo." };
+  }
+
+  try {
+    // Validação defensiva: confirmar Lixeira existe e que o grupo é
+    // filho DIRETO dela (não mais profundo). UI já garante via context
+    // menu condicional, mas defesa programática evita corrupção.
+    const recycleBinUuid = kdbx.meta.recycleBinUuid;
+    if (!recycleBinUuid || recycleBinUuid.empty) {
+      return { ok: false, error: "Cofre não tem Lixeira configurada." };
+    }
+    const recycleBin = kdbx.getGroup(recycleBinUuid);
+    if (!recycleBin) {
+      return { ok: false, error: "Grupo Lixeira não encontrado no cofre." };
+    }
+    if (group.parentGroup !== recycleBin) {
+      return { ok: false, error: "Este grupo não é filho direto da Lixeira." };
+    }
+
+    const root = kdbx.getDefaultGroup();
+    if (!root) {
+      return { ok: false, error: "Grupo raiz não encontrado no cofre." };
+    }
+
+    // Snapshot ANTES da mutação para rollback em caso de erro de save.
+    const originalParent = group.parentGroup;
+
+    kdbx.move(group, root);
+
+    const result = await saveVault(filePath, kdbx);
+    if (!result.ok) {
+      // Rollback: voltar grupo para a Lixeira.
+      if (originalParent) {
+        kdbx.move(group, originalParent);
+      }
+      return { ok: false, error: result.error };
+    }
+
+    return { ok: true, durationMs: result.durationMs };
+  } catch (e) {
+    return {
+      ok: false,
+      error: `Erro ao restaurar grupo: ${describeError(e)}`,
+    };
+  }
+}
+
 // ----- Helpers internos de I/O e erro ---------------------------------------
 
 async function readFileBytes(filePath: string): Promise<Uint8Array> {
