@@ -68,10 +68,16 @@ export function EntryDetail() {
     return () => clearTimeout(id);
   }, [showPassword]);
 
-  // Reseta show-password quando a entry muda.
-  useEffect(() => {
+  // Reseta show-password quando a entry muda. Padrão "setState durante
+  // render" (React docs — react.dev/learn/you-might-not-need-an-effect)
+  // em vez de useEffect: evita render extra + casca da regra
+  // react-hooks/set-state-in-effect introduzida em v7.
+  const entryId = entry?.uuid.id;
+  const [prevEntryId, setPrevEntryId] = useState(entryId);
+  if (prevEntryId !== entryId) {
+    setPrevEntryId(entryId);
     setShowPassword(false);
-  }, [entry?.uuid.id]);
+  }
 
   const password = useMemo(() => (entry ? getPassword(entry) : ""), [entry]);
 

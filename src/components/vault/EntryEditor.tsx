@@ -93,11 +93,16 @@ export function EntryEditor() {
   const [saving, setSaving] = useState(false);
 
   // Reseta show-password e erro do título quando o modo ou a entry
-  // sendo editada mudam.
-  useEffect(() => {
+  // sendo editada mudam. Padrão "setState durante render" (React docs)
+  // com composite key — evita render extra e satisfaz a regra
+  // react-hooks/set-state-in-effect (v7).
+  const editSessionKey = `${editMode}|${draft?.groupUuid ?? ""}`;
+  const [prevEditSessionKey, setPrevEditSessionKey] = useState(editSessionKey);
+  if (prevEditSessionKey !== editSessionKey) {
+    setPrevEditSessionKey(editSessionKey);
     setShowPassword(false);
     setShowTitleError(false);
-  }, [editMode, draft?.groupUuid]);
+  }
 
   // Cálculos derivados precisam vir antes dos useCallback que dependem
   // deles.

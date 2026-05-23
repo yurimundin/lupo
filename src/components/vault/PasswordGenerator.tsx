@@ -10,7 +10,7 @@
 //   botão "Usar" desabilitado.
 
 import { Loader2, RefreshCw } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -63,23 +63,38 @@ interface Props {
 export function PasswordGenerator({ onUse, trigger }: Props) {
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<GeneratorOptions>(DEFAULT_OPTIONS);
-  const [generated, setGenerated] = useState<string>(() =>
-    generatePassword(DEFAULT_OPTIONS),
+  // Counter incrementado por (a) abertura do popover e (b) clique no
+  // botão regenerate — alimenta o `useMemo` abaixo. Padrão substitui
+  // os 2 useEffect anteriores que faziam setState (regra v7
+  // react-hooks/set-state-in-effect). Mudança em `options` já dispara
+  // recálculo via dep nativa do useMemo.
+  const [regenCounter, setRegenCounter] = useState(0);
+
+  // Senha derivada de (options, regenCounter). Regenerar a senha é
+  // operação cara (RNG criptográfico + filtro de ambíguos) — useMemo
+  // garante uma única chamada por render.
+  //
+  // regenCounter aparece como dep mas NÃO é lido no callback — é cache
+  // buster intencional: bump do counter força recálculo com mesmas
+  // options (handler de regenerate + transição open false→true).
+  // ESLint exhaustive-deps sinaliza como "unnecessary", mas o efeito é
+  // proposital. §33 convention: comentário + disable nu.
+  const generated = useMemo(
+    () => generatePassword(options),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [options, regenCounter],
   );
 
-  // Regenera sempre que options mudar (slider, toggles).
-  useEffect(() => {
-    setGenerated(generatePassword(options));
-  }, [options]);
-
-  // Quando o popover (re)abre, regenera com as opções atuais — UX:
-  // toda abertura mostra senha "fresca", não a última gerada.
-  useEffect(() => {
+  // "Regenera ao abrir o popover" — padrão setState durante render
+  // (React docs). Detecta transição false→true de `open` e bumpa
+  // o counter, forçando o useMemo a recalcular com options atuais.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
     if (open) {
-      setGenerated(generatePassword(options));
+      setRegenCounter((c) => c + 1);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }
 
   const noCategorySelected =
     !options.useLowercase &&
@@ -103,7 +118,7 @@ export function PasswordGenerator({ onUse, trigger }: Props) {
   }
 
   function handleRegenerate() {
-    setGenerated(generatePassword(options));
+    setRegenCounter((c) => c + 1);
   }
 
   return (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { KdbxGroup } from "kdbxweb";
 
 import { Button } from "@/components/ui/button";
@@ -48,13 +48,17 @@ export function NewGroupDialog({
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Reset state quando o dialog abre/fecha
-  useEffect(() => {
+  // Reset state quando o dialog abre. Padrão "setState durante render"
+  // (React docs) — evita render extra e satisfaz regra
+  // react-hooks/set-state-in-effect (v7).
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
     if (open) {
       setName("");
       setSubmitting(false);
     }
-  }, [open]);
+  }
 
   const trimmed = name.trim();
 

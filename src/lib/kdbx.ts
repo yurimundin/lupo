@@ -159,7 +159,9 @@ export async function openVault(
   try {
     vaultBytes = await readFileBytes(filePath);
   } catch (e) {
-    throw new Error(`Não foi possível ler o arquivo: ${describeError(e)}`);
+    throw new Error(`Não foi possível ler o arquivo: ${describeError(e)}`, {
+      cause: e,
+    });
   }
 
   let keyFileBytes: Uint8Array | null = null;
@@ -167,7 +169,9 @@ export async function openVault(
     try {
       keyFileBytes = await readFileBytes(keyFilePath);
     } catch (e) {
-      throw new Error(`Não foi possível ler o key file: ${describeError(e)}`);
+      throw new Error(`Não foi possível ler o key file: ${describeError(e)}`, {
+        cause: e,
+      });
     }
   }
 
@@ -184,7 +188,9 @@ export async function openVault(
     // Se o usuário forneceu key file e a abertura falhou, é provável que
     // o erro seja "InvalidKey" — indistinguível entre senha errada e key
     // file errado. Mensagem genérica unificada.
-    throw new Error(translateKdbxError(e, { hasKeyFile: keyFilePath !== null }));
+    throw new Error(translateKdbxError(e, { hasKeyFile: keyFilePath !== null }), {
+      cause: e,
+    });
   }
 }
 

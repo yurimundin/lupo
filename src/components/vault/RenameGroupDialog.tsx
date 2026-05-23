@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { KdbxGroup } from "kdbxweb";
 
 import { Button } from "@/components/ui/button";
@@ -44,13 +44,18 @@ export function RenameGroupDialog({
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Reset state quando o dialog abre — pré-popular com nome atual
-  useEffect(() => {
+  // Reset state quando o dialog abre — pré-popular com nome atual.
+  // Padrão "setState durante render" (React docs) com composite key —
+  // satisfaz regra react-hooks/set-state-in-effect (v7).
+  const sessionKey = `${open ? "1" : "0"}|${group.uuid.id}`;
+  const [prevSessionKey, setPrevSessionKey] = useState(sessionKey);
+  if (prevSessionKey !== sessionKey) {
+    setPrevSessionKey(sessionKey);
     if (open) {
       setName(group.name ?? "");
       setSubmitting(false);
     }
-  }, [open, group]);
+  }
 
   const trimmed = name.trim();
   const currentName = (group.name ?? "").trim();
