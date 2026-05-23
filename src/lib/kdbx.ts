@@ -886,10 +886,13 @@ async function readFileBytes(filePath: string): Promise<Uint8Array> {
 }
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  return bytes.buffer.slice(
-    bytes.byteOffset,
-    bytes.byteOffset + bytes.byteLength,
-  );
+  // Cópia explícita para um ArrayBuffer "puro". TS 6 distingue
+  // ArrayBuffer de SharedArrayBuffer estritamente, e `bytes.buffer`
+  // tem tipo união (`ArrayBufferLike`) — slice() preserva o union,
+  // não atribuível a ArrayBuffer. Mesmo padrão usado em initKdbxweb.
+  const out = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(out).set(bytes);
+  return out;
 }
 
 function describeError(e: unknown): string {

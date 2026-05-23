@@ -20,8 +20,10 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    /* Path alias para shadcn/ui — `@/components/ui/...` resolve para `src/...`. */
-    "baseUrl": ".",
+    /* Path alias para shadcn/ui — `@/components/ui/...` resolve para `src/...`.
+       TS 6 deprecou `baseUrl` (TS5101) e remove em TS 7. `paths` agora
+       resolve relativo ao diretório do próprio tsconfig.json — não precisa
+       mais de baseUrl. Alias mantido idêntico ao Vite (vite.config.ts). */
     "paths": {
       "@/*": ["./src/*"]
     }
