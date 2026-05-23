@@ -769,6 +769,22 @@ Repositório público: <https://github.com/yurimundin/secbasis>
 
 | Hash | Tipo | Descrição |
 |---|---|---|
+| `7e538e9` | chore+refactor | bump typescript 5.8 → 6.0 + remove deprecated baseUrl + fix 2 strictness regressions (S28a) |
+| `7b5d7ef` | chore+refactor | bump eslint 9 → 10, react-hooks 5 → 7 + fix 6 set-state-in-effect + 3 preserve-caught-error (S28b) |
+| `32a9685` | chore(deps-dev) | bump vite 7.0.4 → 8.0.14 + @vitejs/plugin-react 4.6 → 6.0.2 (S28c) |
+| `55d72b9` | chore(deps-dev) | bump globals 15 → 17, eslint-plugin-react-refresh 0.4 → 0.5, typescript-eslint patch (S28d) |
+| `fb953ae` | feat(vault) | restore group from Recycle Bin via right-click context menu (S29) |
+| `0cafce8` | docs | correct S23 entry in §14 — alpha release delivered, not deferred (S28) |
+| `8a20528` | chore(deps) | bump lucide-react from 1.14.0 to 1.16.0 (#15) |
+| `2d07074` | chore(deps) | bump tauri from 2.11.1 to 2.11.2 (#13) |
+| `a6edbd2` | chore(deps) | bump tauri-build from 2.6.1 to 2.6.2 (#12) |
+| `176e4a7` | chore(deps) | bump qs from 6.15.1 to 6.15.2 (#16) |
+| `288f702` | chore(deps) | bump brace-expansion from 5.0.5 to 5.0.6 (#11) |
+| `766607c` | docs+chore | align §14 + remove next-themes + cherry-pick patches (S27) |
+| `038b4fa` | chore(deps) | bump @tailwindcss/vite from 4.2.4 to 4.3.0 (#9) |
+| `22a4ba6` | chore(deps) | bump tailwindcss from 4.2.4 to 4.3.0 (#7) |
+| `3c85a22` | chore(deps) | bump react from 19.2.5 to 19.2.6 (#8) |
+| `1b26389` | chore(deps) | bump tailwind-merge from 3.5.0 to 3.6.0 (#10) |
 | `70e1e23` | feat(vault) | add right-click context menu for groups (S26) |
 | `24246fa` | feat(vault) | add groundwork for group rename/delete (S25 partial) |
 | `ad8e79e` | feat(vault) | add "Criar pasta nova" via "+" button in sidebar header (S24) |
@@ -1200,41 +1216,176 @@ de correção.
     delete com confirmDialog/parent-selection, cascade, persistência)
   - Fecha pendência "context menu para grupos com operações
     completas" do "Próximo:" da S22.
+- ✅ **Sessão 27 — Housekeeping S22-S26 + Dependabot triagem** (`766607c`):
+  - Alinhamento documental do §14 com narrativas S24/S25/S26 (drift
+    de 3 sessões) e estabelecimento do Roadmap S28a-d originário.
+  - Remoção do `next-themes` como dead dep (flagged em S20 quando
+    `ThemeToggle` foi implementado com sistema próprio em
+    `lib/theme.ts` + `MutationObserver`).
+  - Triagem cirúrgica de 5 PRs Dependabot na fila — 4 mergeadas após
+    grep preventivo + análise de coupling:
+    - `1b26389` PR #10 tailwind-merge 3.5.0 → 3.6.0 (npm patch)
+    - `3c85a22` PR #8 react 19.2.5 → 19.2.6 + sync react-dom (npm
+      patch coupled)
+    - `22a4ba6` PR #7 tailwindcss 4.2.4 → 4.3.0 (npm minor) seguida
+      de `@dependabot rebase` no PR #9 acoplado
+    - `038b4fa` PR #9 @tailwindcss/vite 4.2.4 → 4.3.0 (npm minor —
+      acoplado ao #7 via mesma versão pinned, mergeado após rebase
+      automático eliminar nested `node_modules/@tailwindcss/{node,
+      vite}/node_modules/tailwindcss@4.2.4`)
+  - 1 PR fechada conscientemente: `dev-dependencies-2f25c8d3ab`
+    (PR #6) com 6 majors agrupados em single PR — eslint 9→10,
+    vite 7→8, typescript 5→6, plugin-react 4→6, react-hooks 5→7,
+    @eslint/js 9→10. Framework §28: major bumps são sessões
+    dedicadas, agrupados não. Comment técnico preservado em
+    PR #6 (closed). 2 patches dev seguros cherry-picked
+    manualmente (`@tauri-apps/cli` 2.11.0 → 2.11.1 e
+    `typescript-eslint` 8.59.2 → 8.59.3).
+  - Roadmap S28a-d documentado em §14 (subitens S28a/b/c/d com
+    análise de blast radius prévia, depois executado em sessões
+    consecutivas).
+  - `gh` CLI instalado via `winget install --id GitHub.cli`
+    durante triagem — primeira sessão sistematizando uso de `gh`
+    como tool primário para operações GitHub (vs MCP GitHub que
+    não estava disponível).
+- ✅ **Sessão 28 — Correção da entrada S23 em §14** (`0cafce8`):
+  - Entrada S23 estava registrada incorretamente como 🚧 deferida
+    no housekeeping da S27 quando havia sido executada na sessão
+    real S23 (release `v0.1.0-alpha` ativo desde então).
+  - 3 EDITs aplicados: (1) substituir stub 🚧 por entrada ✅
+    completa (build, ZIP, tag annotated, GitHub Release pre-release,
+    hashes SHA256, smoke flow 10 fases, release URL); (2) remover
+    "Alpha distributable for testers (S23 deferida)" do "Próximo:"
+    candidate list; (3) tabela inalterada — `0f46473` (S22 hk) já
+    presente e a tag annotated `v0.1.0-alpha` (`60992f7`) aponta
+    para esse commit.
+  - Lição operacional: housekeeping documental tipo S27 (drift
+    grande de várias sessões) tem risco de imprecisão em entradas
+    históricas. Verificar com `git tag` antes de marcar item como
+    deferido.
+- ✅ **Sessão 29 — Restore group from Recycle Bin** (`fb953ae`):
+  - Hook `useRestoreGroup` + helper `restoreGroupFromRecycleBin`
+    em `lib/kdbx.ts` + item "Restaurar" no `GroupContextMenu`.
+    5 arquivos, +192/-6.
+  - Fecha ciclo CRUD completo de grupos: criar (S24) → renomear/
+    deletar (S25/S26) → restaurar (S29). Simetria visual com o
+    ciclo de entries (Lixeira de entry tinha restore desde S5).
+  - `restoreGroupFromRecycleBin`: valida grupo é filho DIRETO da
+    Lixeira (não subgrupo aninhado), `kdbx.move(group, root)`
+    com rollback in-memory padrão S19 Bloco 3 se save falhar.
+  - `useRestoreGroup`: espelha `useRestoreEntry` (sem
+    `confirmDialog` — ação benigna; toast "Grupo X restaurado
+    (Nms)"; `selectGroup(uuid)` pós-sucesso navega para o grupo
+    no novo parent).
+  - `GroupContextMenu` ganha 4º estado: filho direto da Lixeira
+    mostra apenas "Restaurar para o grupo raiz" (lógica inversa
+    do hide-when-recycle das ações destrutivas Renomear/Mover
+    para Lixeira). Subgrupos aninhados na Lixeira e a Lixeira em
+    si continuam sem menu.
+  - `GroupTreeItem` + `GroupSidebar`: prop `onRestore` propagada
+    e wired ao hook. Padrão `void handleRestore(group)` consistente
+    com S26 (no-misused-promises).
+- ✅ **Sessão 28d — Bumps devDeps seguros do PR #14**
+  (`55d72b9`):
+  - Cherry-pick dos 3 pacotes seguros do PR #14 (fechado
+    conscientemente por conter 6 majors agrupados — eslint 10,
+    vite 8, typescript 6, plugin-react 6, react-hooks 7,
+    @eslint/js 10): `globals` 15 → 17 (devDep, usado apenas como
+    `globals.browser` em `eslint.config.js`), `eslint-plugin-
+    react-refresh` 0.4 → 0.5 (devDep, regra única
+    `only-export-components` com `allowConstantExport: true`),
+    `typescript-eslint` 8.59.3 → 8.59.4 (patch).
+  - Menor dos 4 majors do Roadmap S28a-d. Triple sanity validado.
+  - Sequência: feito ANTES de S28c/b/a (que carregam coupling
+    via peerDep ESLint 10).
+- ✅ **Sessão 28c — Vite 7 → 8 + plugin-react 4 → 6** (`32a9685`):
+  - Maior migração do Roadmap S28a-d — `vite` ^7.0.4 → ^8.0.14
+    e `@vitejs/plugin-react` ^4.6.0 → ^6.0.2. Plugin-react pulou
+    major 5 (Babel-related).
+  - Vite 8 usa **rolldown** (bundler Rust) internamente em vez de
+    rollup. Build output mostra `rolldown-runtime` (0.56 KB) +
+    plugin `rolldown:vite-resolve`. @vitejs/plugin-react 6 remove
+    Babel, usa **Oxc** para JSX transform e Fast Refresh —
+    significativamente mais rápido + menor footprint
+    (package-lock.json: +260/-804 linhas, Babel deps eliminadas).
+  - Zero mudança em `vite.config.ts` — `defineConfig`, `react()`
+    sem args, `manualChunks` da S19, server config Tauri tudo
+    compatível. Node 24 satisfaz engines (^20.19.0 || >=22.12.0).
+  - Validação: vite build 2.86s, 4 chunks íntegros (crypto 197 KB,
+    react 189 KB, ui-vendor 142 KB, index 146 KB) — manualChunks
+    da S19 preservado. Vite dev: ready em 353ms, HTTP 200.
+- ✅ **Sessão 28b — ESLint 9 → 10 + react-hooks 5 → 7 + 9
+  violações** (`7b5d7ef`):
+  - `eslint` ^9.39.4 → ^10.4.0, `@eslint/js` ^9.39.4 → ^10.0.1,
+    `eslint-plugin-react-hooks` ^5.2.0 → ^7.1.1.
+  - 2 novas regras detectadas e fixadas (decisão: refatorar em
+    vez de suprimir — alinha com padrão React docs):
+  - **`react-hooks/set-state-in-effect`**: 6 violações (5 mapeadas
+    no roadmap S28b + 1 nova em `RenameGroupDialog` post-S26).
+    Padrão "setState durante render" do
+    react.dev/learn/you-might-not-need-an-effect aplicado:
+    `EntryDetail` (entry change), `EntryEditor` (composite key
+    editMode|groupUuid), `NewGroupDialog` (prevOpen),
+    `RenameGroupDialog` (composite key open|uuid),
+    `PasswordGenerator` (refactor maior: 2 useEffects → useMemo
+    + `regenCounter` cache buster, com supressão exhaustive-deps
+    §33 justificada).
+  - **`preserve-caught-error`**: 3 violações em `lib/kdbx.ts`
+    `openVault` — `new Error(msg, { cause: e })`. Mudança no
+    `tsconfig.json` lib += `"ES2022.Error"` (options bag é
+    ES2022). Target ES2020 preservado.
+  - 3 imports `useEffect` removidos (NewGroupDialog,
+    RenameGroupDialog, PasswordGenerator).
+- ✅ **Sessão 28a — TypeScript 5.8 → 6.0** (`7e538e9`):
+  - Fecha Roadmap S28a-d. `typescript` ~5.8.3 → ~6.0.3.
+  - **`baseUrl` deprecated removido** (TS5101, vai parar de
+    funcionar em TS 7) do `tsconfig.json`. `paths` agora resolve
+    relativo ao diretório do próprio tsconfig por padrão (TS
+    5.0+). Alias `"@/*"` → `["./src/*"]` continua idêntico ao
+    alias do Vite.
+  - 2 strictness regressions expostas pelo TS 6:
+    (1) `lib/kdbx.ts` `toArrayBuffer` (TS2322) — `bytes.buffer.slice()`
+    agora retorna `ArrayBuffer | SharedArrayBuffer` (union de
+    `ArrayBufferLike`), não atribuível a `ArrayBuffer` puro;
+    refactor para `new ArrayBuffer + set` (mesmo padrão de
+    `initKdbxweb`).
+    (2) `main.tsx` side-effect import `@fontsource-variable/geologica`
+    (TS2882) — pacote só publica CSS, sem tipos JS; resolvido
+    com ambient declaration em `src/vite-env.d.ts`.
 
-**Próximo:** Sessão 28 — a decidir baseado em prioridade. Candidatos:
-Restore group from Recycle Bin (feature
-derivada da S26 fechando ciclo create/rename/delete/restore),
-`emptyRecycleBin` rollback (kdbxweb tombstone API, sessão dedicada),
-VM validation do `.exe` alpha gerado em S19, empacotamento Windows
-real (1.0+ com cert via vendor — ver §32), ou major upgrades de deps
-em sessões separadas (plugin-react 4→6, vite 7→8, typescript 5.8→6.0).
-Validação diferida: ativar branch protection com 3 jobs obrigatórios
-após 1-2 semanas (decisão da Sessão 13).
+**Próximo:** Sessão 30 — pendências em aberto após fechamento do
+Roadmap S28a-d e do ciclo CRUD de grupos. Candidatos:
+`emptyRecycleBin` rollback (kdbxweb tombstone API, sessão dedicada
+restante do S19 Bloco 3), VM validation do `.exe` alpha gerado em
+S19 (validar fluxo completo de instalação como tester real),
+empacotamento Windows real para 1.0+ (cert via vendor — ver §32,
+bloqueado por decisão de entidade jurídica), ou nova rodada de
+triagem Dependabot (5 PRs abertas no momento da escrita: #11
+brace-expansion security, #12 tauri-build cargo patch, #13 tauri
+cargo patch, #15 lucide-react minor, #16 qs patch). Validação
+diferida: ativar branch protection com 3 jobs obrigatórios após
+1-2 semanas (decisão da Sessão 13).
 
-**Roadmap S28a-d — Major upgrades de dev-deps (originados do PR #6
-fechado conscientemente por §28 framework):**
+**Roadmap S28a-d — CONCLUÍDO em S30:** os 4 majors do PR #14
+(fechado conscientemente por §28 framework — 6 majors agrupados em
+single PR não-mergeável) foram executados em sessões dedicadas
+consecutivas:
 
-- **S28a — TypeScript 5.8 → 6.0:** estratégia de migração para
-  `baseUrl` deprecated em `tsconfig.json` (decidir entre suprimir
-  via `ignoreDeprecations: "6.0"` ou refatorar `paths` aliases para
-  usar apenas relative paths). Sessão isolada porque afeta foundation
-  de TypeScript do projeto inteiro.
-- **S28b — ESLint 9 → 10 + @eslint/js 9 → 10 + plugin-react-hooks
-  5 → 7:** avaliar nova regra `react-hooks/set-state-in-effect`
-  (5 violações em `EntryDetail.tsx`, `EntryEditor.tsx`,
-  `NewGroupDialog.tsx`, `PasswordGenerator.tsx`) — decidir entre
-  suprimir regra (usar versão idiomática React) ou refatorar
-  sites afetados.
-- **S28c — Vite 7 → 8 + @vitejs/plugin-react 4 → 6:** maior
-  migração — remoção de Babel deps em favor de Oxc transforms.
-  Plugin-react pula major 5 (Babel-related). Provável recompilação
-  completa de assets para validar.
-- **S28d — globals 15 → 17 + eslint-plugin-react-refresh 0.4 → 0.5:**
-  bumps menores mas com peerDep coupling ao ESLint 10 (depende de
-  S28b primeiro). Schema do `globals` mudou entre versões.
+- ✅ **S28d** (`55d72b9`) — globals 15 → 17 + plugin-react-refresh
+  0.4 → 0.5 + typescript-eslint patch. Menor dos 4, feito
+  primeiro por ordem de coupling.
+- ✅ **S28c** (`32a9685`) — vite 7 → 8 + plugin-react 4 → 6.
+  Babel → Oxc transforms (rolldown bundler).
+- ✅ **S28b** (`7b5d7ef`) — eslint 9 → 10 + react-hooks 5 → 7 +
+  9 violações refatoradas (set-state-in-effect +
+  preserve-caught-error).
+- ✅ **S28a** (`7e538e9`) — typescript 5.8 → 6.0 + baseUrl
+  removido + 2 strictness fixes. Foundation TypeScript do
+  projeto inteira no major mais recente.
 
-Cada sub-sessão da S28 tem escopo bem definido e blast radius isolado.
-Comment técnico completo preservado em PR #6 (closed).
+Padrão consolidado: **PR Dependabot multi-major → close +
+cherry-pick por sessão dedicada**. Aplicável a próximos PRs
+agrupados (futuro).
 
 ---
 
