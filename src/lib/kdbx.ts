@@ -513,10 +513,13 @@ export type EmptyRecycleBinResult =
  * magic-check, ver §17 do CLAUDE.md). NÃO lança — sempre retorna
  * `EmptyRecycleBinResult`.
  *
- * Trade-off em caso de erro de save: o `kdbx` em memória já teve as
- * entries removidas; o disco mantém o estado antigo. Mesmo padrão de
- * `moveEntryToRecycleBin` e `restoreEntryFromRecycleBin`. TODO Sessão
- * 6+: rollback in-memory.
+ * Em caso de erro de save (ou exceção mid-loop): rollback in-memory
+ * completo (padrão §19 Bloco 3 — pendência aberta desde S19 fechada
+ * em S31). Restaura `recycleBin.entries` na ordem original via splice,
+ * reverte `parentGroup` de cada entry para o `recycleBin`, e trunca
+ * `kdbx.deletedObjects` removendo os tombstones adicionados (que
+ * nunca chegaram ao disco). Snapshots declarados fora do `try {}`
+ * para serem acessíveis no `catch`.
  */
 export async function emptyRecycleBin(
   filePath: string,
@@ -526,19 +529,38 @@ export async function emptyRecycleBin(
     return { ok: false, error: "Estado inválido para esvaziar Lixeira." };
   }
 
+  // Vars de snapshot declaradas fora do try {} para acesso no catch
+  // (rollback de exceção mid-loop). Permanecem em estado vazio até o
+  // snapshot bem-sucedido logo abaixo as popule. `recycleBin` é
+  // undefined no início — o `if (recycleBin && ...)` no catch garante
+  // que rollback só roda se o snapshot foi capturado.
+  let recycleBin: KdbxGroup | undefined;
+  let originalEntries: KdbxEntry[] = [];
+  let tombstoneCountBefore = 0;
+
   try {
     const recycleBinUuid = kdbx.meta.recycleBinUuid;
     if (!recycleBinUuid || recycleBinUuid.empty) {
       return { ok: false, error: "Cofre não tem Lixeira configurada." };
     }
-    const recycleBin = kdbx.getGroup(recycleBinUuid);
+    recycleBin = kdbx.getGroup(recycleBinUuid);
     if (!recycleBin) {
       return { ok: false, error: "Grupo Lixeira não encontrado no cofre." };
     }
 
-    // Snapshot ANTES de iterar — kdbx.remove muta o array in-place.
-    const entriesToRemove = [...recycleBin.entries];
-    const count = entriesToRemove.length;
+    // Snapshot completo ANTES do hard-delete — duas dimensões:
+    //   1. originalEntries: cópia do array recycleBin.entries para
+    //      preservar a ORDEM e permitir restauração via splice no
+    //      rollback (kdbx.move muta o array in-place — iterar
+    //      diretamente faria skip de elementos).
+    //   2. tombstoneCountBefore: tamanho atual de
+    //      kdbx.deletedObjects. Cada kdbx.move(entry, undefined) faz
+    //      push de um KdbxDeletedObject; rollback trunca o array de
+    //      volta ao tamanho original (in-memory only — save falhou,
+    //      tombstones nunca foram persistidos).
+    originalEntries = [...recycleBin.entries];
+    const count = originalEntries.length;
+    tombstoneCountBefore = kdbx.deletedObjects.length;
 
     if (count === 0) {
       return { ok: false, error: "Lixeira já está vazia." };
@@ -556,12 +578,30 @@ export async function emptyRecycleBin(
     // recycleBinEnabled=true, remove() move para a Lixeira. Quando
     // entry JÁ está na Lixeira, vira no-op (splice + push no mesmo
     // array). Ver §21 do CLAUDE.md.
-    for (const entry of entriesToRemove) {
+    for (const entry of originalEntries) {
       kdbx.move(entry, undefined);
     }
 
     const result = await saveVault(filePath, kdbx);
     if (!result.ok) {
+      // Rollback in-memory completo (S31 fechou pendência §19 Bloco 3):
+      //   1. Restaurar recycleBin.entries com cópia original via splice
+      //      (preserva a REFERÊNCIA do array — não fazer reassign,
+      //      Zustand/seletores podem depender da identidade do array).
+      //   2. Restaurar parentGroup em cada entry (kdbx.move undefined
+      //      setou parentGroup = undefined; reverter para recycleBin).
+      //   3. Truncar kdbx.deletedObjects ao count pré-loop. Os
+      //      tombstones adicionados nunca foram persistidos em disco
+      //      (save falhou) — descartar in-memory é seguro.
+      recycleBin.entries.splice(
+        0,
+        recycleBin.entries.length,
+        ...originalEntries,
+      );
+      for (const entry of originalEntries) {
+        entry.parentGroup = recycleBin;
+      }
+      kdbx.deletedObjects.length = tombstoneCountBefore;
       return { ok: false, error: result.error };
     }
 
@@ -571,6 +611,23 @@ export async function emptyRecycleBin(
       entriesDeleted: count,
     };
   } catch (e) {
+    // Rollback defensivo no caminho de exceção. Usa splice ao invés
+    // de push porque é idempotente em qualquer ponto do loop:
+    //   - Exceção pré-snapshot: originalEntries vazio → splice no-op.
+    //   - Exceção mid-loop: recycleBin.entries parcialmente vaziada
+    //     → splice substitui pelo array completo original.
+    //   - Exceção pós-loop: recycleBin.entries vazia → splice preenche.
+    if (recycleBin && originalEntries.length > 0) {
+      recycleBin.entries.splice(
+        0,
+        recycleBin.entries.length,
+        ...originalEntries,
+      );
+      for (const entry of originalEntries) {
+        entry.parentGroup = recycleBin;
+      }
+      kdbx.deletedObjects.length = tombstoneCountBefore;
+    }
     return {
       ok: false,
       error: `Erro ao esvaziar Lixeira: ${describeError(e)}`,
