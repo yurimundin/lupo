@@ -1105,10 +1105,28 @@ de correção.
   - 4 catches críticos consolidados em §28 (reforço S22)
   - Audit pós-S22: 2 moderate (ip-address + express-rate-limit,
     ambas §30 dispensadas conscientemente)
-- 🚧 **Sessão 23 — Alpha distributable** (não-realizada): planejada
-  no "Próximo:" da S22, deferida para sessão futura. Trabalho
-  previsto: ZIP do `secbasis.exe` 12 MB + GitHub Release + README
-  com SmartScreen warning para testers conhecidos.
+- ✅ **Sessão 23 — Alpha distributable for testers** (`v0.1.0-alpha`):
+  - Build fresh do `secbasis.exe` (12 MB, compilado de `0f46473`).
+    Build feito em Downloads/ no MundinLenovo (§31 trade-off aceito
+    conscientemente — SAC reputation já estabelecida de builds
+    anteriores, MOTW risco documentado).
+  - ZIP profissional `Sec.Basis-0.1.0-alpha-windows-x64.zip` (3.85 MB,
+    compressão 67%) com 4 arquivos: secbasis.exe + LEIAME.txt (89 linhas
+    PT-BR com instruções SmartScreen) + LICENSE MIT + checksum.sha256.
+  - Tag git anotada `v0.1.0-alpha` apontando `0f46473` (S22 fechamento).
+    Tag é objeto separado (`60992f7`) — comportamento normal para
+    annotated tags.
+  - GitHub Release com pre-release flag marcada (alpha não aparece como
+    "latest"). Release notes em PT-BR: audiência, instalação, SmartScreen
+    warning, hashes SHA256, limitações, feedback channels.
+  - Hashes para verificação:
+    ZIP: `ab7d4992ca0e692ce2cee1f018dff6ddd8e931f3d21d09b24990801e94df8606`
+    .exe: `563771dcc26cc86fd780d3fabe2f792d44f7ece244b081dcd93ca3b1f58a38c8`
+  - Smoke flow 10 fases como tester real (download incógnita + extract +
+    run + SmartScreen + criar cofre teste) — passou todas as fases.
+  - Release URL: https://github.com/yurimundin/secbasis/releases/tag/v0.1.0-alpha
+  - Audiência: 1-3 testers conhecidos. Distribuição mais ampla aguarda
+    versão 1.0+ com assinatura digital (§32).
 - ✅ **Sessão 24 — Criar pasta nova via botão "+" no header** (`ad8e79e`):
   - Header novo no GroupSidebar com label "Grupos" + botão "+"
     (variant ghost, size icon, ícone Plus do lucide-react)
@@ -1184,8 +1202,7 @@ de correção.
     completas" do "Próximo:" da S22.
 
 **Próximo:** Sessão 28 — a decidir baseado em prioridade. Candidatos:
-Alpha distributable for testers (S23 deferida — ZIP + GitHub Release
-+ README SmartScreen), Restore group from Recycle Bin (feature
+Restore group from Recycle Bin (feature
 derivada da S26 fechando ciclo create/rename/delete/restore),
 `emptyRecycleBin` rollback (kdbxweb tombstone API, sessão dedicada),
 VM validation do `.exe` alpha gerado em S19, empacotamento Windows
