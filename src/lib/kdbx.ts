@@ -13,6 +13,11 @@ import * as kdbxweb from "kdbxweb";
 import type { Kdbx, KdbxEntry, KdbxGroup } from "kdbxweb";
 
 import { deriveArgon2Key, type Argon2Variant } from "./argon2";
+import {
+  SEC_BASIS_GROUP_ICON_KEY,
+  setGroupLucideIconId,
+  type GroupLucideIconId,
+} from "./group-icons";
 
 let initialized = false;
 
@@ -750,6 +755,62 @@ export async function renameGroupInVault(
     return {
       ok: false,
       error: `Erro ao renomear grupo: ${describeError(e)}`,
+    };
+  }
+}
+
+/** Resultado de `setGroupVisualIconInVault` - sucesso ou erro. */
+export type SetGroupVisualIconResult =
+  | { ok: true; durationMs: number }
+  | { ok: false; error: string };
+
+/**
+ * Salva o icone visual Sec.Basis em `customData` do grupo.
+ *
+ * Isso nao altera o `IconID` nativo do KeePass: clientes KeePass continuam
+ * abrindo o cofre normalmente e ignoram esse metadado especifico do app.
+ */
+export async function setGroupVisualIconInVault(
+  filePath: string,
+  kdbx: Kdbx,
+  group: KdbxGroup,
+  iconId: GroupLucideIconId | null,
+): Promise<SetGroupVisualIconResult> {
+  if (!filePath || !kdbx || !group) {
+    return { ok: false, error: "Estado invalido para alterar icone do grupo." };
+  }
+
+  const hadCustomData = !!group.customData;
+  const oldItem = group.customData?.get(SEC_BASIS_GROUP_ICON_KEY);
+
+  try {
+    setGroupLucideIconId(group, iconId);
+    group.times.update();
+
+    const result = await saveVault(filePath, kdbx);
+    if (!result.ok) {
+      if (!hadCustomData) {
+        group.customData = undefined;
+      } else if (oldItem) {
+        group.customData?.set(SEC_BASIS_GROUP_ICON_KEY, oldItem);
+      } else {
+        group.customData?.delete(SEC_BASIS_GROUP_ICON_KEY);
+      }
+      return { ok: false, error: result.error };
+    }
+
+    return { ok: true, durationMs: result.durationMs };
+  } catch (e) {
+    if (!hadCustomData) {
+      group.customData = undefined;
+    } else if (oldItem) {
+      group.customData?.set(SEC_BASIS_GROUP_ICON_KEY, oldItem);
+    } else {
+      group.customData?.delete(SEC_BASIS_GROUP_ICON_KEY);
+    }
+    return {
+      ok: false,
+      error: `Erro ao alterar icone do grupo: ${describeError(e)}`,
     };
   }
 }

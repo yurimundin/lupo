@@ -21,7 +21,9 @@ import { useCreateGroup } from "@/hooks/useCreateGroup";
 import { useDeleteGroup } from "@/hooks/useDeleteGroup";
 import { useRenameGroup } from "@/hooks/useRenameGroup";
 import { useRestoreGroup } from "@/hooks/useRestoreGroup";
+import { useSetGroupIcon } from "@/hooks/useSetGroupIcon";
 import { confirmDialog } from "@/lib/confirm";
+import type { GroupLucideIconId } from "@/lib/group-icons";
 import { useSettingsStore } from "@/stores/settings";
 import {
   type GroupTreeNode,
@@ -33,6 +35,7 @@ import {
 } from "@/stores/vault";
 
 import { GroupTreeItem } from "./GroupTreeItem";
+import { GroupIconDialog } from "./GroupIconDialog";
 import { NewGroupDialog } from "./NewGroupDialog";
 import { RenameGroupDialog } from "./RenameGroupDialog";
 
@@ -118,11 +121,14 @@ export function GroupSidebar() {
   const renameGroup = useRenameGroup();
   const deleteGroup = useDeleteGroup();
   const restoreGroup = useRestoreGroup();
+  const setGroupIcon = useSetGroupIcon();
   const [isNewGroupOpen, setIsNewGroupOpen] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [isIconDialogOpen, setIsIconDialogOpen] = useState(false);
   const [renameTargetGroup, setRenameTargetGroup] = useState<KdbxGroup | null>(
     null,
   );
+  const [iconTargetGroup, setIconTargetGroup] = useState<KdbxGroup | null>(null);
   // Override do targetParent quando "Novo subgrupo" vem do context menu
   // (em vez do botão "+" do header). Reset ao fechar NewGroupDialog.
   const [ctxCreateTarget, setCtxCreateTarget] = useState<KdbxGroup | null>(
@@ -204,6 +210,11 @@ export function GroupSidebar() {
     setIsRenameOpen(true);
   }
 
+  function handleChangeIcon(group: KdbxGroup) {
+    setIconTargetGroup(group);
+    setIsIconDialogOpen(true);
+  }
+
   // Handler do context menu: mover grupo para Lixeira.
   // useDeleteGroup já cuida de confirmDialog + toast + selectGroup(parent).
   async function handleDelete(group: KdbxGroup) {
@@ -220,6 +231,13 @@ export function GroupSidebar() {
   async function handleConfirmRename(newName: string): Promise<boolean> {
     if (!renameTargetGroup) return false;
     return renameGroup(renameTargetGroup, newName);
+  }
+
+  async function handleConfirmIcon(
+    group: KdbxGroup,
+    iconId: GroupLucideIconId | null,
+  ): Promise<boolean> {
+    return setGroupIcon(group, iconId);
   }
 
   /**
@@ -357,6 +375,7 @@ export function GroupSidebar() {
             recycleBinUuidId={recycleBinUuidId}
             getGroupByUuid={getGroupByUuid}
             onCreateSubgroup={handleCreateSubgroup}
+            onChangeIcon={handleChangeIcon}
             onRename={handleRename}
             onDelete={(group) => void handleDelete(group)}
             onRestore={(group) => void handleRestore(group)}
@@ -385,6 +404,17 @@ export function GroupSidebar() {
           }}
           group={renameTargetGroup}
           onConfirm={handleConfirmRename}
+        />
+      )}
+      {iconTargetGroup && (
+        <GroupIconDialog
+          open={isIconDialogOpen}
+          onOpenChange={(open) => {
+            setIsIconDialogOpen(open);
+            if (!open) setIconTargetGroup(null);
+          }}
+          group={iconTargetGroup}
+          onConfirm={handleConfirmIcon}
         />
       )}
     </aside>

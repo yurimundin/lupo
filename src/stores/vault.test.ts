@@ -11,6 +11,7 @@ import type { KdbxGroup } from "kdbxweb";
 interface FakeGroup {
   uuid: { id: string };
   name: string;
+  customData?: Map<string, { value: string; lastModified?: Date }>;
   entries: FakeEntry[];
   groups: FakeGroup[];
   parentGroup?: FakeGroup;
@@ -63,6 +64,7 @@ describe("vault pure selectors", () => {
     expect(tree).toMatchObject({
       uuid: "root",
       name: "Root",
+      iconId: null,
       depth: 0,
       parentUuid: null,
       isRecycleBin: false,
@@ -70,6 +72,7 @@ describe("vault pure selectors", () => {
     });
     expect(tree.children[0]).toMatchObject({
       uuid: "child",
+      iconId: null,
       depth: 1,
       parentUuid: "root",
       entryCount: 1,
@@ -79,6 +82,18 @@ describe("vault pure selectors", () => {
       name: "Lixeira",
       isRecycleBin: true,
     });
+  });
+
+  it("includes Sec.Basis custom Lucide icon metadata in the group tree", () => {
+    const child = group("child", "Child");
+    child.customData = new Map([
+      ["sec.basis.groupIcon", { value: "shield" }],
+    ]);
+    const root = group("root", "Root", [], [child]);
+
+    const [tree] = buildGroupTree(asGroup(root), null);
+
+    expect(tree.children[0].iconId).toBe("shield");
   });
 
   it("translates only the configured recycle bin display name", () => {

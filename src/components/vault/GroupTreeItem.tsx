@@ -14,9 +14,10 @@
 //   - Folhas (sem children) reservam espaço de chevron pra alinhar com
 //     o ícone Folder dos pares que têm chevron.
 
-import { ChevronDown, ChevronRight, Folder, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import type { KdbxGroup } from "kdbxweb";
 
+import { GROUP_ICON_BY_ID } from "@/lib/group-icons";
 import { cn } from "@/lib/utils";
 import type { GroupTreeNode } from "@/stores/vault";
 
@@ -37,6 +38,7 @@ export interface GroupTreeItemProps {
   recycleBinUuidId: string | null;
   getGroupByUuid: (uuid: string) => KdbxGroup | null;
   onCreateSubgroup: (group: KdbxGroup) => void;
+  onChangeIcon: (group: KdbxGroup) => void;
   onRename: (group: KdbxGroup) => void;
   onDelete: (group: KdbxGroup) => void;
   onRestore: (group: KdbxGroup) => void;
@@ -53,6 +55,7 @@ export function GroupTreeItem({
   recycleBinUuidId,
   getGroupByUuid,
   onCreateSubgroup,
+  onChangeIcon,
   onRename,
   onDelete,
   onRestore,
@@ -65,7 +68,9 @@ export function GroupTreeItem({
     Math.min(node.depth * INDENT_PX_PER_LEVEL, INDENT_PX_MAX) +
     BASE_LEFT_PADDING_PX;
 
-  const Icon = node.isRecycleBin ? Trash2 : Folder;
+  const Icon = node.isRecycleBin
+    ? Trash2
+    : GROUP_ICON_BY_ID[node.iconId ?? "folder"];
 
   // Resolver KdbxGroup do nó para o context menu. Defense in depth:
   // se a árvore estiver dessincronizada com kdbx, retorna null e o
@@ -141,6 +146,7 @@ export function GroupTreeItem({
           group={group}
           recycleBinUuidId={recycleBinUuidId}
           onCreateSubgroup={onCreateSubgroup}
+          onChangeIcon={onChangeIcon}
           onRename={onRename}
           onDelete={onDelete}
           onRestore={onRestore}
@@ -165,6 +171,7 @@ export function GroupTreeItem({
               recycleBinUuidId={recycleBinUuidId}
               getGroupByUuid={getGroupByUuid}
               onCreateSubgroup={onCreateSubgroup}
+              onChangeIcon={onChangeIcon}
               onRename={onRename}
               onDelete={onDelete}
               onRestore={onRestore}

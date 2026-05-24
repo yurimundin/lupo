@@ -35,6 +35,10 @@ import {
   getUrl,
   getUsername,
 } from "@/lib/entry-helpers";
+import {
+  getGroupLucideIconId,
+  type GroupLucideIconId,
+} from "@/lib/group-icons";
 
 /** Modo do painel direito (EntryDetail/EntryEditor). */
 export type EditMode = "view" | "edit" | "create";
@@ -490,6 +494,7 @@ export function useTopLevelGroups(): KdbxGroup[] {
 export interface GroupTreeNode {
   uuid: string;
   name: string;
+  iconId: GroupLucideIconId | null;
   depth: number;
   children: GroupTreeNode[];
   parentUuid: string | null;
@@ -507,6 +512,7 @@ export function buildGroupTreeNode(
   return {
     uuid: uuidId,
     name: getGroupDisplayName(group, recycleBinUuidId),
+    iconId: getGroupLucideIconId(group),
     depth,
     children: group.groups.map((child) =>
       buildGroupTreeNode(child, depth + 1, uuidId, recycleBinUuidId),

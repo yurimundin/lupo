@@ -66,6 +66,7 @@ import {
   moveEntryToRecycleBin,
   restoreEntryFromRecycleBin,
   saveVault,
+  setGroupVisualIconInVault,
 } from "./kdbx";
 
 interface FakeUuid {
@@ -84,6 +85,7 @@ interface FakeGroup {
   entries: FakeEntry[];
   groups: FakeGroup[];
   parentGroup?: FakeGroup;
+  customData?: Map<string, { value: string; lastModified?: Date }>;
   times: { update: () => void };
 }
 
@@ -176,6 +178,9 @@ function findGroup(root: FakeGroup, id: string): FakeGroup | undefined {
 
 const asDb = (value: FakeDb) => value as unknown as Parameters<typeof saveVault>[1];
 const asEntry = (value: FakeEntry) => value as unknown as KdbxEntry;
+const asGroup = (value: FakeGroup) => value as unknown as Parameters<
+  typeof setGroupVisualIconInVault
+>[2];
 
 describe("kdbx helpers", () => {
   beforeEach(() => {
@@ -265,5 +270,39 @@ describe("kdbx helpers", () => {
     expect(first.parentGroup).toBe(recycleBin);
     expect(second.parentGroup).toBe(recycleBin);
     expect(db.deletedObjects).toEqual([{ uuid: "old" }]);
+  });
+
+  it("stores a Sec.Basis visual group icon without changing KeePass icon ids", async () => {
+    const { db, root } = makeDb();
+
+    const result = await setGroupVisualIconInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asGroup(root),
+      "shield",
+    );
+
+    expect(result).toEqual({ ok: true, durationMs: 12 });
+    expect(root.customData?.get("sec.basis.groupIcon")?.value).toBe("shield");
+    expect(root.times.update).toHaveBeenCalled();
+    expect("icon" in root).toBe(false);
+  });
+
+  it("rolls the previous visual group icon back when saving fails", async () => {
+    const { db, root } = makeDb();
+    root.customData = new Map([
+      ["sec.basis.groupIcon", { value: "home", lastModified: new Date(0) }],
+    ]);
+    invokeMock.mockRejectedValue("save falhou");
+
+    const result = await setGroupVisualIconInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asGroup(root),
+      "shield",
+    );
+
+    expect(result).toEqual({ ok: false, error: "save falhou" });
+    expect(root.customData.get("sec.basis.groupIcon")?.value).toBe("home");
   });
 });

@@ -12,6 +12,7 @@ type Props = {
   group: KdbxGroup;
   recycleBinUuidId: string | null;
   onCreateSubgroup: (group: KdbxGroup) => void;
+  onChangeIcon: (group: KdbxGroup) => void;
   onRename: (group: KdbxGroup) => void;
   onDelete: (group: KdbxGroup) => void;
   onRestore: (group: KdbxGroup) => void;
@@ -75,6 +76,7 @@ export function GroupContextMenu({
   group,
   recycleBinUuidId,
   onCreateSubgroup,
+  onChangeIcon,
   onRename,
   onDelete,
   onRestore,
@@ -109,6 +111,9 @@ export function GroupContextMenu({
       <ContextMenuContent className="w-56">
         <ContextMenuItem onClick={() => onCreateSubgroup(group)}>
           Novo subgrupo
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => onChangeIcon(group)}>
+          Alterar icone
         </ContextMenuItem>
         {!isRootGroup && (
           <>
