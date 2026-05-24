@@ -47,7 +47,7 @@ export function GroupIconDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle>Alterar icone</DialogTitle>
+          <DialogTitle>Alterar ícone</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">

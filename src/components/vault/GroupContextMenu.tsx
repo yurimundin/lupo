@@ -57,6 +57,10 @@ function isDirectChildOfRecycleBin(
   return group.parentGroup?.uuid.id === recycleBinUuidId;
 }
 
+function runAfterMenuCloses(callback: () => void): void {
+  window.setTimeout(callback, 0);
+}
+
 /**
  * Wrapper que adiciona context menu (right-click) aos itens da
  * árvore de grupos.
@@ -90,7 +94,7 @@ export function GroupContextMenu({
       <ContextMenu>
         <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
         <ContextMenuContent className="w-56">
-          <ContextMenuItem onClick={() => onRestore(group)}>
+          <ContextMenuItem onSelect={() => onRestore(group)}>
             Restaurar para o grupo raiz
           </ContextMenuItem>
         </ContextMenuContent>
@@ -109,20 +113,26 @@ export function GroupContextMenu({
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-56">
-        <ContextMenuItem onClick={() => onCreateSubgroup(group)}>
+        <ContextMenuItem
+          onSelect={() => runAfterMenuCloses(() => onCreateSubgroup(group))}
+        >
           Novo subgrupo
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => onChangeIcon(group)}>
-          Alterar icone
+        <ContextMenuItem
+          onSelect={() => runAfterMenuCloses(() => onChangeIcon(group))}
+        >
+          Alterar ícone
         </ContextMenuItem>
         {!isRootGroup && (
           <>
-            <ContextMenuItem onClick={() => onRename(group)}>
+            <ContextMenuItem
+              onSelect={() => runAfterMenuCloses(() => onRename(group))}
+            >
               Renomear
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem
-              onClick={() => onDelete(group)}
+              onSelect={() => onDelete(group)}
               className="text-destructive focus:text-destructive"
             >
               Mover para Lixeira
