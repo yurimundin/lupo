@@ -29,6 +29,11 @@ export async function copyToClipboardWithAutoClear(
   }
 
   const ms = useSettingsStore.getState().clipboardAutoClearMs;
+  if (ms <= 0) {
+    toast.success(label);
+    return;
+  }
+
   const seconds = Math.round(ms / 1000);
   toast.success(`${label}. Será limpo em ${seconds}s.`);
 

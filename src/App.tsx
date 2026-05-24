@@ -35,6 +35,7 @@ function App() {
   // evitar UnlockScreen apontando pra arquivo fantasma.
   useEffect(() => {
     if (useVaultStore.getState().lastFilePath !== null) return;
+    if (!useSettingsStore.getState().rememberLastVault) return;
     const persistedPath =
       useSettingsStore.getState().lastOpenedVaultPath;
     if (!persistedPath) return;

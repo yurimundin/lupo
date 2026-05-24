@@ -1,11 +1,12 @@
 // Header global do cofre. Inclui logo + filename, busca cross-group
 // (Sessão 17), indicadores de save/auto-lock, toggle de tema (Sessão 20)
-// e botão Bloquear.
+// e botões de configurações/sobre/bloquear.
 
-import { Info, Lock as LockIcon } from "lucide-react";
+import { Info, Lock as LockIcon, Settings } from "lucide-react";
 import { useState } from "react";
 
 import { AboutDialog } from "@/components/AboutDialog";
+import { SecuritySettingsDialog } from "@/components/SecuritySettingsDialog";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/vault/SearchInput";
 import { requestLockWithGuard } from "@/lib/lock-flow";
@@ -24,6 +25,7 @@ export function VaultHeader() {
   const searchQuery = useSearchQuery();
   const setSearchQuery = useVaultStore((s) => s.setSearchQuery);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <header className="h-12 shrink-0 flex items-center gap-3 px-4 border-b border-border bg-bg-secondary">
@@ -63,6 +65,16 @@ export function VaultHeader() {
       <Button
         variant="ghost"
         size="icon"
+        onClick={() => setSettingsOpen(true)}
+        aria-label="Configurações de segurança"
+        title="Configurações de segurança"
+      >
+        <Settings />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={() => setAboutOpen(true)}
         aria-label="Sobre o Sec.Basis"
         title="Sobre o Sec.Basis"
@@ -84,6 +96,10 @@ export function VaultHeader() {
         Bloquear
       </Button>
 
+      <SecuritySettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+      />
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
     </header>
   );

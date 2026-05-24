@@ -23,6 +23,12 @@ export const DEFAULT_CLIPBOARD_AUTO_CLEAR_MS = 20 * 1000;
 interface SettingsState {
   autoLockMs: number;
   clipboardAutoClearMs: number;
+  /** Se true, persiste o caminho do último cofre aberto entre boots. */
+  rememberLastVault: boolean;
+  /** Se true, persiste o caminho do key file associado a cada cofre. */
+  rememberKeyFilePath: boolean;
+  /** Se true, bloqueia o cofre quando a janela perde foco ou é minimizada. */
+  lockOnWindowBlur: boolean;
   /**
    * Mapa `<filePath do cofre>` → `true` quando o usuário fechou o banner
    * informativo de key file daquele cofre. Persistido para não reaparecer
@@ -71,6 +77,9 @@ interface SettingsState {
 
   setAutoLockMs(ms: number): void;
   setClipboardAutoClearMs(ms: number): void;
+  setRememberLastVault(enabled: boolean): void;
+  setRememberKeyFilePath(enabled: boolean): void;
+  setLockOnWindowBlur(enabled: boolean): void;
   markKeyFileBannerSeen(filePath: string): void;
   hasSeenKeyFileBanner(filePath: string): boolean;
   rememberKeyFile(vaultPath: string, keyFilePath: string): void;
@@ -86,6 +95,9 @@ export const useSettingsStore = create<SettingsState>()(
     (set, get) => ({
       autoLockMs: DEFAULT_AUTO_LOCK_MS,
       clipboardAutoClearMs: DEFAULT_CLIPBOARD_AUTO_CLEAR_MS,
+      rememberLastVault: true,
+      rememberKeyFilePath: true,
+      lockOnWindowBlur: false,
       seenKeyFileBanner: {},
       keyFilePathByVault: {},
       lastOpenedVaultPath: null,
@@ -94,6 +106,21 @@ export const useSettingsStore = create<SettingsState>()(
       setAutoLockMs: (autoLockMs) => set({ autoLockMs }),
       setClipboardAutoClearMs: (clipboardAutoClearMs) =>
         set({ clipboardAutoClearMs }),
+      setRememberLastVault: (rememberLastVault) =>
+        set((state) => ({
+          rememberLastVault,
+          lastOpenedVaultPath: rememberLastVault
+            ? state.lastOpenedVaultPath
+            : null,
+        })),
+      setRememberKeyFilePath: (rememberKeyFilePath) =>
+        set((state) => ({
+          rememberKeyFilePath,
+          keyFilePathByVault: rememberKeyFilePath
+            ? state.keyFilePathByVault
+            : {},
+        })),
+      setLockOnWindowBlur: (lockOnWindowBlur) => set({ lockOnWindowBlur }),
       markKeyFileBannerSeen: (filePath) =>
         set({
           seenKeyFileBanner: {
@@ -104,12 +131,16 @@ export const useSettingsStore = create<SettingsState>()(
       hasSeenKeyFileBanner: (filePath) =>
         Boolean(get().seenKeyFileBanner[filePath]),
       rememberKeyFile: (vaultPath, keyFilePath) =>
-        set({
-          keyFilePathByVault: {
-            ...get().keyFilePathByVault,
-            [vaultPath]: keyFilePath,
-          },
-        }),
+        set((state) =>
+          state.rememberKeyFilePath
+            ? {
+                keyFilePathByVault: {
+                  ...state.keyFilePathByVault,
+                  [vaultPath]: keyFilePath,
+                },
+              }
+            : {},
+        ),
       forgetKeyFile: (vaultPath) =>
         set((state) => {
           const next = { ...state.keyFilePathByVault };
@@ -117,8 +148,14 @@ export const useSettingsStore = create<SettingsState>()(
           return { keyFilePathByVault: next };
         }),
       getRememberedKeyFile: (vaultPath) =>
-        get().keyFilePathByVault[vaultPath] ?? null,
-      setLastOpenedVaultPath: (path) => set({ lastOpenedVaultPath: path }),
+        get().rememberKeyFilePath
+          ? get().keyFilePathByVault[vaultPath] ?? null
+          : null,
+      setLastOpenedVaultPath: (path) =>
+        set((state) => ({
+          lastOpenedVaultPath:
+            path === null || state.rememberLastVault ? path : null,
+        })),
       toggleGroupExpanded: (vaultPath, groupUuid) =>
         set((state) => {
           const current = state.expandedGroupsByVault[vaultPath] ?? [];

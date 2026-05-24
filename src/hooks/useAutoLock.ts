@@ -41,6 +41,7 @@ const MOUSE_MOVE_THROTTLE_MS = 250;
 export function useAutoLock(): void {
   const kdbx = useVaultStore((s) => s.kdbx);
   const autoLockMs = useSettingsStore((s) => s.autoLockMs);
+  const lockOnWindowBlur = useSettingsStore((s) => s.lockOnWindowBlur);
 
   useEffect(() => {
     // Só ativa o auto-lock quando há cofre desbloqueado.
@@ -48,6 +49,18 @@ export function useAutoLock(): void {
 
     const bump = () => useActivityStore.getState().bump();
     bump(); // reseta no mount também — usuário acabou de desbloquear
+    let lockInFlight = false;
+
+    function lockWithInFlightGuard(options?: {
+      autoConfirmAfterMs?: number;
+    }): void {
+      if (lockInFlight) return;
+      lockInFlight = true;
+      void requestLockWithGuard(options).finally(() => {
+        useActivityStore.getState().bump();
+        lockInFlight = false;
+      });
+    }
 
     let mouseTimer: number | null = null;
     function handleMouseMove() {
@@ -64,26 +77,30 @@ export function useAutoLock(): void {
     document.addEventListener("scroll", bump, true);
     document.addEventListener("touchstart", bump);
 
-    // Flag pra evitar disparar o lock várias vezes seguidas (o tick
-    // bate a cada 1s; sem flag, dispararia o `requestLockWithGuard` em
-    // loop enquanto o dialog estiver aberto).
-    let lockInFlight = false;
+    function handleWindowBlur() {
+      if (lockOnWindowBlur) {
+        lockWithInFlightGuard();
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (lockOnWindowBlur && document.visibilityState === "hidden") {
+        lockWithInFlightGuard();
+      }
+    }
+
+    window.addEventListener("blur", handleWindowBlur);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     const tickId = window.setInterval(() => {
+      if (autoLockMs <= 0) return;
       if (lockInFlight) return;
       const elapsed = Date.now() - useActivityStore.getState().lastActivity;
       if (elapsed >= autoLockMs) {
-        lockInFlight = true;
         // Auto-lock confirma com o usuário se houver mudanças não-salvas;
         // se não responder em 30s, descarta e bloqueia (defesa).
-        void requestLockWithGuard({
+        lockWithInFlightGuard({
           autoConfirmAfterMs: AUTO_LOCK_CONFIRM_TIMEOUT_MS,
-        }).finally(() => {
-          // Reseta a atividade — se o usuário interagiu pra cancelar o
-          // dialog (= continuar editando), não queremos disparar de
-          // novo no próximo tick.
-          useActivityStore.getState().bump();
-          lockInFlight = false;
         });
       }
     }, 1000);
@@ -94,10 +111,12 @@ export function useAutoLock(): void {
       document.removeEventListener("click", bump);
       document.removeEventListener("scroll", bump, true);
       document.removeEventListener("touchstart", bump);
+      window.removeEventListener("blur", handleWindowBlur);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (mouseTimer !== null) clearTimeout(mouseTimer);
       clearInterval(tickId);
     };
-  }, [kdbx, autoLockMs]);
+  }, [kdbx, autoLockMs, lockOnWindowBlur]);
 }
 
 export function useAutoLockRemainingMs(): number {
@@ -110,5 +129,6 @@ export function useAutoLockRemainingMs(): number {
     return () => clearInterval(id);
   }, []);
 
+  if (autoLockMs <= 0) return Number.POSITIVE_INFINITY;
   return Math.max(0, autoLockMs - (now - lastActivity));
 }

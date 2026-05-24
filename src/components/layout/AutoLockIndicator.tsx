@@ -24,6 +24,7 @@ export function AutoLockIndicator() {
 }
 
 function formatMmss(ms: number): string {
+  if (!Number.isFinite(ms)) return "Nunca";
   const totalSeconds = Math.ceil(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
