@@ -9,6 +9,8 @@
 // `openExternalSafe` (`src/lib/external.ts`, S21 — antes era função
 // local duplicada com EntryDetail.tsx).
 
+import { ArrowUpRight } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,6 +30,7 @@ interface AboutDialogProps {
 
 const SITE_URL = "https://sec.basis.app.br";
 const REPO_URL = "https://github.com/yurimundin/secbasis";
+const ARGO_URL = "https://argo.basis.app.br";
 
 export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
   const version = useAppVersion();
@@ -77,6 +80,23 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
               <span className="text-muted-foreground">Licença</span>
               <span>MIT</span>
             </div>
+          </div>
+
+          <div className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm">
+            <p className="font-medium text-foreground">
+              Precisa gerenciar senhas em equipe?
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Conheça o Argo. Trial de 30 dias sem cartão, cancele quando quiser.
+            </p>
+            <button
+              type="button"
+              onClick={() => void openExternalSafe(ARGO_URL)}
+              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              Conhecer Argo
+              <ArrowUpRight className="size-3" />
+            </button>
           </div>
         </div>
 
