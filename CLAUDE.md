@@ -119,6 +119,8 @@ Objetivo: substituir o KeePassXC para o uso pessoal do Yuri.
 - [ ] Visualizar/copiar senha com auto-clear de clipboard (configurável).
 - [ ] Gerador de senhas (comprimento, conjuntos, exclusão de ambíguos).
 - [ ] Busca textual nas entradas.
+- [ ] Sidebar de grupos com hierarquia recursiva, ordenação alfabética,
+      Lixeira sempre no fim, e personalização visual por ícone/cor.
 - [ ] Salvar com backup automático (`.kdbx.bak`).
 - [ ] Auto-lock por inatividade (configurável).
 - [ ] Tema claro/escuro (segue o sistema).
@@ -1996,12 +1998,13 @@ grupo.
 **Esquema:** Semantic Versioning (SemVer) —
 `MAJOR.MINOR.PATCH[-pre-release]`.
 
-**Versão atual:** `0.1.0-alpha`. Indica explicitamente pre-release.
+**Versão atual:** `0.1.2`. Release Windows de validação controlada, ainda sem
+assinatura de código e sem auto-update.
 Convenção de bumps:
 
-- `0.1.x-alpha` → fixes durante alpha
-- `0.2.0-alpha` → features novas durante alpha
-- `0.1.0-beta` → quando virar beta público
+- `0.1.x` → fixes e melhorias incrementais durante validação controlada
+- `0.2.0` → features novas de produto antes do 1.0
+- `0.x.y-beta` → quando virar beta público, se o canal beta for retomado
 - `1.0.0` → primeira release estável (Roadmap Fase 1 100% completo)
 
 **Source of truth:** `src-tauri/tauri.conf.json` campo `version`
@@ -2330,6 +2333,19 @@ profunda (típico em uso real) ficavam mal representados.
   filhos. Faz sentido pro "container do cofre" (evita confusão "por
   que não posso colapsar o cofre?"). Lixeira respeita a hierarquia
   como qualquer outro grupo (com chevron quando tem subgrupos).
+
+- **Ordenação visual:** `buildGroupTreeNode()` ordena os filhos por nome
+  com `localeCompare("pt-BR", { sensitivity: "base" })`. Essa ordenação
+  é apenas de apresentação: a ordem física dos grupos dentro do `.kdbx`
+  não é regravada. O grupo Lixeira configurado em `meta.recycleBinUuid`
+  sempre é renderizado por último em seu nível, independentemente do nome.
+
+- **Ícones e cores de grupos:** cada nó também carrega `iconId` e
+  `iconColorId`, lidos de `customData` com chaves próprias do Sec.Basis
+  (`sec.basis.groupIcon` e `sec.basis.groupIconColor`). A UI usa ícones
+  Lucide, incluindo `Scale` para a opção "Jurídico", e uma paleta pequena
+  de cores nomeadas. Isso não altera o `IconID` nativo do KeePass; outros
+  clientes ignoram esses metadados e continuam abrindo o cofre.
 
 **Keyboard nav recursiva:** flatten visível (`flattenVisible(tree,
 predicate)` em GroupSidebar) gera lista linear dos nós atualmente

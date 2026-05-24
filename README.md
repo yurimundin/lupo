@@ -25,6 +25,8 @@ O **Sec.Basis** preenche essa lacuna com:
 - **Open source MIT** — código sob auditoria pública.
 - **Compatibilidade total com KeePass/KeePassXC** — você pode abrir o mesmo
   cofre em qualquer um dos três.
+- **Organização visual moderna** — grupos em árvore, ordenação alfabética,
+  Lixeira sempre no fim e ícones Lucide com cores por pasta.
 - **Recuperação guiada** — se uma gravação for interrompida, o app detecta
   arquivos `.tmp`/`.bak` e oferece restauração conservadora.
 
@@ -103,6 +105,9 @@ Princípios de design que guiam o projeto:
 - **Recuperação conservadora de crash.** `.bak` sozinho é normal após saves;
   o app só interrompe o fluxo quando encontra `.tmp` pendente ou um cofre
   atual inconsistente com backup válido.
+- **Metadados visuais compatíveis.** Ícones e cores de pastas são salvos como
+  metadados próprios do Sec.Basis; KeePass/KeePassXC ignoram esses dados e
+  continuam abrindo o mesmo `.kdbx` normalmente.
 - **Superfície Tauri mínima.** CSP restritiva, sem permissões Shell amplas;
   links externos passam pelo plugin Opener com protocolos permitidos.
 
@@ -119,6 +124,8 @@ Princípios de design que guiam o projeto:
   - ✅ Auto-open do último cofre usado (estilo KeePass — pré-preenche path, senha sempre exigida)
   - ✅ Tela "Sobre" com versão e links (acessível pelo botão Info no header)
   - ✅ Subgrupos expansíveis na sidebar (hierarquia recursiva, persistência por cofre)
+  - ✅ Ordenação alfabética dos grupos na sidebar, com Lixeira sempre por último
+  - ✅ Ícones Lucide e cores por pasta, incluindo opção "Jurídico" com ícone de balança
   - ✅ Busca em tempo real (substring case-insensitive em Title/UserName/URL/Notes, cross-group excluindo Lixeira, atalho Ctrl+F)
   - ✅ Empacotamento Windows manual (instaladores `.msi` e `.exe` via Tauri)
   - ✅ Suíte unitária inicial (Vitest + CI)
