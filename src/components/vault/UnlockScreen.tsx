@@ -23,10 +23,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fileExists } from "@/lib/fs";
+import {
+  fileExists,
+  inspectVaultRecovery,
+  type VaultRecoveryState,
+} from "@/lib/fs";
 import { openVault } from "@/lib/kdbx";
+import { canRestoreBackup, shouldShowRecoveryPrompt } from "@/lib/vault-recovery";
 import { useSettingsStore } from "@/stores/settings";
 import { useVaultStore } from "@/stores/vault";
+
+import { VaultRecoveryDialog } from "./VaultRecoveryDialog";
 
 export function UnlockScreen() {
   const lastFilePath = useVaultStore((s) => s.lastFilePath);
@@ -56,6 +63,10 @@ export function UnlockScreen() {
   );
   const [rememberedKeyFileMissing, setRememberedKeyFileMissing] =
     useState(false);
+  const [recoveryState, setRecoveryState] =
+    useState<VaultRecoveryState | null>(null);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [dismissedRecovery, setDismissedRecovery] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -81,6 +92,26 @@ export function UnlockScreen() {
       cancelled = true;
     };
   }, [lastKeyFilePath]);
+
+  useEffect(() => {
+    if (!lastFilePath || dismissedRecovery) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const state = await inspectVaultRecovery(lastFilePath);
+        if (cancelled) return;
+        setRecoveryState(state);
+        if (shouldShowRecoveryPrompt(state)) {
+          setRecoveryOpen(true);
+        }
+      } catch {
+        // Recovery e best-effort; o desbloqueio normal continua disponivel.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lastFilePath, dismissedRecovery]);
 
   async function handleSelectKeyFile() {
     setError(null);
@@ -129,7 +160,19 @@ export function UnlockScreen() {
       // mas redundância barata garante invariante. Ver §24 CLAUDE.md.
       useSettingsStore.getState().setLastOpenedVaultPath(lastFilePath);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const message = e instanceof Error ? e.message : String(e);
+      setError(message);
+      if (lastFilePath && /corrompido|corrupt|kdbx/i.test(message)) {
+        try {
+          const state = await inspectVaultRecovery(lastFilePath);
+          setRecoveryState(state);
+          if (canRestoreBackup(state)) {
+            setRecoveryOpen(true);
+          }
+        } catch {
+          // Mantem o erro original de abertura.
+        }
+      }
     } finally {
       setBusy(false);
     }
@@ -310,6 +353,24 @@ export function UnlockScreen() {
           Compatível com KeePass / KeePassXC · Offline-first
         </p>
       </div>
+      <VaultRecoveryDialog
+        open={recoveryOpen}
+        filePath={lastFilePath}
+        recovery={recoveryState}
+        onOpenCurrent={() => {
+          setDismissedRecovery(true);
+          setRecoveryOpen(false);
+        }}
+        onRecovered={() => {
+          setError(null);
+          setDismissedRecovery(false);
+          setRecoveryState(null);
+        }}
+        onOpenChange={(open) => {
+          setRecoveryOpen(open);
+          if (!open) setDismissedRecovery(true);
+        }}
+      />
     </div>
   );
 }

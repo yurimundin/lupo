@@ -1,7 +1,7 @@
 {
   "name": "sec-basis",
   "private": true,
-  "version": "0.1.0-alpha",
+  "version": "0.1.1-alpha",
   "description": "Gerenciador de senhas desktop, leve e offline-first, compatível com .kdbx (KeePass).",
   "license": "MIT",
   "author": "Yuri Mundin Ferreira",

@@ -25,6 +25,8 @@ O **Sec.Basis** preenche essa lacuna com:
 - **Open source MIT** — código sob auditoria pública.
 - **Compatibilidade total com KeePass/KeePassXC** — você pode abrir o mesmo
   cofre em qualquer um dos três.
+- **Recuperação guiada** — se uma gravação for interrompida, o app detecta
+  arquivos `.tmp`/`.bak` e oferece restauração conservadora.
 
 ## Status
 
@@ -99,6 +101,9 @@ Princípios de design que guiam o projeto:
 - **Auto-lock e auto-clear.** Cofre bloqueia por inatividade; clipboard com
   senha é limpo após poucos segundos.
 - **Backup automático antes de salvar.** Arquivo atual vira `.kdbx.bak`.
+- **Recuperação conservadora de crash.** `.bak` sozinho é normal após saves;
+  o app só interrompe o fluxo quando encontra `.tmp` pendente ou um cofre
+  atual inconsistente com backup válido.
 - **Superfície Tauri mínima.** CSP restritiva, sem permissões Shell amplas;
   links externos passam pelo plugin Opener com protocolos permitidos.
 
@@ -119,6 +124,7 @@ Princípios de design que guiam o projeto:
   - ✅ Empacotamento Windows alpha manual (instaladores `.msi` e `.exe` via Tauri)
   - ✅ Suíte unitária inicial (Vitest + CI)
   - ✅ Motor offline de força/auditoria de senhas
+  - ✅ Recuperação guiada para `.tmp`/`.bak` após crash ou gravação interrompida
 
 - **Fase 2:** UI de auditoria do cofre, YubiKey, TOTP, anexos, importação
   Bitwarden/1Password/LastPass.

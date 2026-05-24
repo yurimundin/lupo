@@ -28,10 +28,17 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fileExists } from "@/lib/fs";
+import {
+  fileExists,
+  inspectVaultRecovery,
+  type VaultRecoveryState,
+} from "@/lib/fs";
 import { openVault } from "@/lib/kdbx";
+import { canRestoreBackup, shouldShowRecoveryPrompt } from "@/lib/vault-recovery";
 import { useSettingsStore } from "@/stores/settings";
 import { useVaultStore } from "@/stores/vault";
+
+import { VaultRecoveryDialog } from "./VaultRecoveryDialog";
 
 // Sem props: o sucesso popula `useVaultStore` direto.
 export function OpenVaultTab() {
@@ -42,6 +49,12 @@ export function OpenVaultTab() {
   const [useKeyFile, setUseKeyFile] = useState(false);
   const [keyFilePath, setKeyFilePath] = useState<string | null>(null);
   const [rememberedKeyFileMissing, setRememberedKeyFileMissing] = useState(false);
+  const [recoveryState, setRecoveryState] =
+    useState<VaultRecoveryState | null>(null);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [dismissedRecoveryPath, setDismissedRecoveryPath] = useState<
+    string | null
+  >(null);
 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -95,6 +108,26 @@ export function OpenVaultTab() {
     };
   }, [filePath]);
 
+  useEffect(() => {
+    if (!filePath || dismissedRecoveryPath === filePath) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const state = await inspectVaultRecovery(filePath);
+        if (cancelled) return;
+        setRecoveryState(state);
+        if (shouldShowRecoveryPrompt(state)) {
+          setRecoveryOpen(true);
+        }
+      } catch {
+        // Recovery e best-effort; erros normais seguem pelo fluxo de abrir.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [filePath, dismissedRecoveryPath]);
+
   async function handleSelectFile() {
     setError(null);
     try {
@@ -107,6 +140,9 @@ export function OpenVaultTab() {
       if (typeof selected === "string") {
         // Reset do tracker de auto-picker quando o vault muda.
         autoPromptedForVault.current = null;
+        setDismissedRecoveryPath(null);
+        setRecoveryState(null);
+        setRecoveryOpen(false);
         setFilePath(selected);
       }
     } catch (e) {
@@ -176,7 +212,19 @@ export function OpenVaultTab() {
 
       console.info("[Sec.Basis] cofre aberto:", fileName, db.meta.name);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const message = e instanceof Error ? e.message : String(e);
+      setError(message);
+      if (filePath && /corrompido|corrupt|kdbx/i.test(message)) {
+        try {
+          const state = await inspectVaultRecovery(filePath);
+          setRecoveryState(state);
+          if (canRestoreBackup(state)) {
+            setRecoveryOpen(true);
+          }
+        } catch {
+          // Mantem o erro original de abertura.
+        }
+      }
     } finally {
       setBusy(false);
     }
@@ -332,6 +380,27 @@ export function OpenVaultTab() {
           "Desbloquear"
         )}
       </Button>
+
+      {filePath && (
+        <VaultRecoveryDialog
+          open={recoveryOpen}
+          filePath={filePath}
+          recovery={recoveryState}
+          onOpenCurrent={() => {
+            setDismissedRecoveryPath(filePath);
+            setRecoveryOpen(false);
+          }}
+          onRecovered={() => {
+            setError(null);
+            setDismissedRecoveryPath(null);
+            setRecoveryState(null);
+          }}
+          onOpenChange={(open) => {
+            setRecoveryOpen(open);
+            if (!open) setDismissedRecoveryPath(filePath);
+          }}
+        />
+      )}
     </form>
   );
 }

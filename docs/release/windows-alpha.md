@@ -43,6 +43,9 @@ Artefatos esperados:
 - Publicar hashes SHA-256 dos instaladores junto com a release.
 - Incluir aviso de alpha: produto em teste, sem assinatura de código, manter
   backup externo do cofre.
+- Validar recuperação guiada: criar um `.kdbx.tmp` ao lado do cofre, abrir o
+  app e confirmar que o aviso permite abrir o cofre atual ou restaurar o
+  `.kdbx.bak` quando houver backup válido.
 
 ## Fora do escopo desta alpha
 
