@@ -5,29 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
-  typescript:
-    name: TypeScript check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tsc --noEmit
-        run: npx tsc --noEmit
-
-  lint:
-    name: ESLint
+  frontend:
+    name: Frontend checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,27 +27,17 @@ jobs:
       - name: Run npm run lint
         run: npm run lint
 
-  tests:
-    name: Unit tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Run npm run test:run
         run: npm run test:run
 
+      - name: Run npm run build
+        run: npm run build
+
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high
+
   rust:
-    name: Rust check
+    name: Rust checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -93,3 +65,45 @@ jobs:
       - name: Run cargo check
         working-directory: src-tauri
         run: cargo check --all-targets
+
+      - name: Audit Rust dependencies
+        uses: rustsec/audit-check@v2
+        with:
+          working-directory: src-tauri
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  windows-bundle:
+    name: Windows Tauri bundle
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installers
+        run: npm run dist:windows
+
+      - name: Upload Windows installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: secbasis-windows-installers
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
