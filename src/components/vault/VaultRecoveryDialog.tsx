@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -67,6 +68,10 @@ export function VaultRecoveryDialog({
             <AlertTriangle className="size-5 text-warning" />
             Recuperacao de cofre
           </DialogTitle>
+          <DialogDescription>
+            Revise os arquivos encontrados e escolha se deseja restaurar o
+            backup.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -142,4 +147,3 @@ function baseName(filePath: string): string {
   const parts = filePath.split(/[\\/]/);
   return parts[parts.length - 1] || filePath;
 }
-

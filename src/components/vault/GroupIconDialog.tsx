@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -69,6 +70,10 @@ export function GroupIconDialog({
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>Alterar ícone e cor</DialogTitle>
+          <DialogDescription>
+            Escolha uma aparência visual para identificar esta pasta no
+            Sec.Basis.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

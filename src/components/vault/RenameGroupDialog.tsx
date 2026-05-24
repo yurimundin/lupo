@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -108,6 +109,9 @@ export function RenameGroupDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Renomear grupo</DialogTitle>
+          <DialogDescription>
+            Atualize o nome desta pasta no cofre.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2">
