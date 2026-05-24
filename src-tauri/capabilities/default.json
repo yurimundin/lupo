@@ -6,8 +6,7 @@
   "permissions": [
     "core:default",
     "core:window:allow-destroy",
-    "opener:default",
-    "dialog:default",
-    "shell:allow-open"
+    "opener:allow-default-urls",
+    "dialog:default"
   ]
 }

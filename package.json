@@ -11,6 +11,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings=0",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "dist:windows": "tauri build",
     "tauri": "tauri"
   },
   "dependencies": {
@@ -19,7 +22,6 @@
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-opener": "^2",
-    "@tauri-apps/plugin-shell": "^2.3.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "kdbxweb": "^2.1.1",
@@ -46,7 +48,8 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.59.4",
-    "vite": "^8.0.13"
+    "vite": "^8.0.13",
+    "vitest": "^4.1.7"
   },
   "overrides": {
     "@xmldom/xmldom": "^0.8.12"

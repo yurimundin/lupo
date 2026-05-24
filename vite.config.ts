@@ -1,3 +1,5 @@
+/// <reference types="vitest/config" />
+
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
@@ -81,5 +83,10 @@ export default defineConfig(async () => ({
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+  },
+
+  test: {
+    environment: "node",
+    globals: false,
   },
 }));

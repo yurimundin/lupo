@@ -30,9 +30,10 @@ O **Sec.Basis** preenche essa lacuna com:
 
 🚧 **Em desenvolvimento ativo.** O MVP funcional está implementado
 (CRUD completo, gerador de senhas, persistência atômica com backup,
-soft-delete via Recycle Bin compatível com KeePass). Ainda não há
-release público — primeira versão alpha será publicada quando os
-itens marcados como 🚧 no roadmap estiverem concluídos.
+soft-delete via Recycle Bin compatível com KeePass). A primeira alpha
+Windows já pode ser empacotada manualmente para testers conhecidos; a
+distribuição pública ampla ainda aguarda assinatura de código, auto-update e
+mais validação de campo.
 
 ## Site oficial
 
@@ -73,6 +74,20 @@ npm run tauri dev
 A primeira compilação do backend Rust pode levar alguns minutos. Execuções
 seguintes são rápidas.
 
+### Verificação local
+
+```bash
+npm run lint
+npm run test:run
+npm run build
+```
+
+Para gerar instaladores Windows (`.msi` e `.exe` NSIS):
+
+```bash
+npm run dist:windows
+```
+
 ## Princípios
 
 Princípios de design que guiam o projeto:
@@ -84,6 +99,8 @@ Princípios de design que guiam o projeto:
 - **Auto-lock e auto-clear.** Cofre bloqueia por inatividade; clipboard com
   senha é limpo após poucos segundos.
 - **Backup automático antes de salvar.** Arquivo atual vira `.kdbx.bak`.
+- **Superfície Tauri mínima.** CSP restritiva, sem permissões Shell amplas;
+  links externos passam pelo plugin Opener com protocolos permitidos.
 
 ## Roadmap
 
@@ -99,10 +116,12 @@ Princípios de design que guiam o projeto:
   - ✅ Tela "Sobre" com versão e links (acessível pelo botão Info no header)
   - ✅ Subgrupos expansíveis na sidebar (hierarquia recursiva, persistência por cofre)
   - ✅ Busca em tempo real (substring case-insensitive em Title/UserName/URL/Notes, cross-group excluindo Lixeira, atalho Ctrl+F)
-  - 🚧 Empacotamento e distribuição Windows (instalador .msi/.exe via site oficial)
+  - ✅ Empacotamento Windows alpha manual (instaladores `.msi` e `.exe` via Tauri)
+  - ✅ Suíte unitária inicial (Vitest + CI)
+  - ✅ Motor offline de força/auditoria de senhas
 
-- **Fase 2:** YubiKey, TOTP, anexos, importação Bitwarden/1Password/LastPass,
-  auditoria de senhas.
+- **Fase 2:** UI de auditoria do cofre, YubiKey, TOTP, anexos, importação
+  Bitwarden/1Password/LastPass.
 
 - **Fase 3:** Extensão de browser para auto-fill, modo equipe via pasta
   sincronizada, painel de saúde do cofre (LGPD-friendly).

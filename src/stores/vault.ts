@@ -413,9 +413,7 @@ export function useAllEntries(): KdbxEntry[] {
   const recycleBinUuidId = useRecycleBinUuidId();
   return useMemo(() => {
     if (!kdbx) return [];
-    const acc: KdbxEntry[] = [];
-    collectEntriesRecursive(kdbx.getDefaultGroup(), acc, recycleBinUuidId);
-    return acc;
+    return collectEntriesForSearch(kdbx.getDefaultGroup(), recycleBinUuidId);
     // vaultVersion é cache-buster intencional (§15): incrementa a cada
     // mutação in-place do kdbx; força re-execução sem ser referenciado.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -423,10 +421,19 @@ export function useAllEntries(): KdbxEntry[] {
 }
 
 /**
- * Walk recursivo sobre `group.groups`, coletando entries em `acc`.
+ * Walk recursivo sobre `group.groups`, coletando entries para busca.
  * Pula a Lixeira inteira (e qualquer subgrupo dela) — quando o grupo
  * atual é a Lixeira, retorna sem descer.
  */
+export function collectEntriesForSearch(
+  root: KdbxGroup,
+  recycleBinUuidId: string | null,
+): KdbxEntry[] {
+  const acc: KdbxEntry[] = [];
+  collectEntriesRecursive(root, acc, recycleBinUuidId);
+  return acc;
+}
+
 function collectEntriesRecursive(
   group: KdbxGroup,
   acc: KdbxEntry[],
@@ -490,7 +497,7 @@ export interface GroupTreeNode {
   entryCount: number;
 }
 
-function buildGroupTreeNode(
+export function buildGroupTreeNode(
   group: KdbxGroup,
   depth: number,
   parentUuid: string | null,
@@ -529,11 +536,18 @@ export function useGroupTree(): GroupTreeNode[] {
   const recycleBinUuidId = useRecycleBinUuidId();
   return useMemo(() => {
     if (!kdbx) return [];
-    return [buildGroupTreeNode(kdbx.getDefaultGroup(), 0, null, recycleBinUuidId)];
+    return buildGroupTree(kdbx.getDefaultGroup(), recycleBinUuidId);
     // vaultVersion é cache-buster intencional (§15): incrementa a cada
     // mutação in-place do kdbx; força re-execução sem ser referenciado.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kdbx, vaultVersion, recycleBinUuidId]);
+}
+
+export function buildGroupTree(
+  root: KdbxGroup,
+  recycleBinUuidId: string | null,
+): GroupTreeNode[] {
+  return [buildGroupTreeNode(root, 0, null, recycleBinUuidId)];
 }
 
 /**
