@@ -280,10 +280,14 @@ describe("kdbx helpers", () => {
       asDb(db),
       asGroup(root),
       "shield",
+      "green",
     );
 
     expect(result).toEqual({ ok: true, durationMs: 12 });
     expect(root.customData?.get("sec.basis.groupIcon")?.value).toBe("shield");
+    expect(root.customData?.get("sec.basis.groupIconColor")?.value).toBe(
+      "green",
+    );
     expect(root.times.update).toHaveBeenCalled();
     expect("icon" in root).toBe(false);
   });
@@ -292,6 +296,7 @@ describe("kdbx helpers", () => {
     const { db, root } = makeDb();
     root.customData = new Map([
       ["sec.basis.groupIcon", { value: "home", lastModified: new Date(0) }],
+      ["sec.basis.groupIconColor", { value: "blue", lastModified: new Date(0) }],
     ]);
     invokeMock.mockRejectedValue("save falhou");
 
@@ -300,9 +305,11 @@ describe("kdbx helpers", () => {
       asDb(db),
       asGroup(root),
       "shield",
+      "green",
     );
 
     expect(result).toEqual({ ok: false, error: "save falhou" });
     expect(root.customData.get("sec.basis.groupIcon")?.value).toBe("home");
+    expect(root.customData.get("sec.basis.groupIconColor")?.value).toBe("blue");
   });
 });

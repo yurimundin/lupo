@@ -36,7 +36,9 @@ import {
   getUsername,
 } from "@/lib/entry-helpers";
 import {
+  getGroupIconColorId,
   getGroupLucideIconId,
+  type GroupIconColorId,
   type GroupLucideIconId,
 } from "@/lib/group-icons";
 
@@ -495,6 +497,7 @@ export interface GroupTreeNode {
   uuid: string;
   name: string;
   iconId: GroupLucideIconId | null;
+  iconColorId: GroupIconColorId | null;
   depth: number;
   children: GroupTreeNode[];
   parentUuid: string | null;
@@ -513,14 +516,34 @@ export function buildGroupTreeNode(
     uuid: uuidId,
     name: getGroupDisplayName(group, recycleBinUuidId),
     iconId: getGroupLucideIconId(group),
+    iconColorId: getGroupIconColorId(group),
     depth,
-    children: group.groups.map((child) =>
+    children: sortGroupsForDisplay(group.groups, recycleBinUuidId).map((child) =>
       buildGroupTreeNode(child, depth + 1, uuidId, recycleBinUuidId),
     ),
     parentUuid,
     isRecycleBin: recycleBinUuidId !== null && uuidId === recycleBinUuidId,
     entryCount: group.entries.length,
   };
+}
+
+function sortGroupsForDisplay(
+  groups: KdbxGroup[],
+  recycleBinUuidId: string | null,
+): KdbxGroup[] {
+  return [...groups].sort((a, b) => {
+    const aIsRecycleBin = recycleBinUuidId !== null && a.uuid.id === recycleBinUuidId;
+    const bIsRecycleBin = recycleBinUuidId !== null && b.uuid.id === recycleBinUuidId;
+
+    if (aIsRecycleBin && !bIsRecycleBin) return 1;
+    if (!aIsRecycleBin && bIsRecycleBin) return -1;
+
+    return getGroupDisplayName(a, recycleBinUuidId).localeCompare(
+      getGroupDisplayName(b, recycleBinUuidId),
+      "pt-BR",
+      { sensitivity: "base" },
+    );
+  });
 }
 
 /**

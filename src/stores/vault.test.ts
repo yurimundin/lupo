@@ -65,6 +65,7 @@ describe("vault pure selectors", () => {
       uuid: "root",
       name: "Root",
       iconId: null,
+      iconColorId: null,
       depth: 0,
       parentUuid: null,
       isRecycleBin: false,
@@ -73,6 +74,7 @@ describe("vault pure selectors", () => {
     expect(tree.children[0]).toMatchObject({
       uuid: "child",
       iconId: null,
+      iconColorId: null,
       depth: 1,
       parentUuid: "root",
       entryCount: 1,
@@ -84,16 +86,33 @@ describe("vault pure selectors", () => {
     });
   });
 
-  it("includes Sec.Basis custom Lucide icon metadata in the group tree", () => {
+  it("includes Sec.Basis custom Lucide icon and color metadata in the group tree", () => {
     const child = group("child", "Child");
     child.customData = new Map([
       ["sec.basis.groupIcon", { value: "shield" }],
+      ["sec.basis.groupIconColor", { value: "green" }],
     ]);
     const root = group("root", "Root", [], [child]);
 
     const [tree] = buildGroupTree(asGroup(root), null);
 
     expect(tree.children[0].iconId).toBe("shield");
+    expect(tree.children[0].iconColorId).toBe("green");
+  });
+
+  it("sorts group tree children alphabetically with the recycle bin last", () => {
+    const beta = group("beta", "Beta");
+    const recycleBin = group("trash", "Recycle Bin");
+    const alpha = group("alpha", "Alpha");
+    const root = group("root", "Root", [], [beta, recycleBin, alpha]);
+
+    const [tree] = buildGroupTree(asGroup(root), "trash");
+
+    expect(tree.children.map((child) => child.uuid)).toEqual([
+      "alpha",
+      "beta",
+      "trash",
+    ]);
   });
 
   it("translates only the configured recycle bin display name", () => {

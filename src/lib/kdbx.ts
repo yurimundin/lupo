@@ -14,12 +14,22 @@ import type { Kdbx, KdbxEntry, KdbxGroup } from "kdbxweb";
 
 import { deriveArgon2Key, type Argon2Variant } from "./argon2";
 import {
+  SEC_BASIS_GROUP_ICON_COLOR_KEY,
   SEC_BASIS_GROUP_ICON_KEY,
+  setGroupIconColorId,
   setGroupLucideIconId,
+  type GroupIconColorId,
   type GroupLucideIconId,
 } from "./group-icons";
 
 let initialized = false;
+
+type KdbxGroupCustomDataItem = NonNullable<KdbxGroup["customData"]> extends Map<
+  string,
+  infer Item
+>
+  ? Item
+  : never;
 
 /**
  * Configura a kdbxweb para usar o Argon2 nativo (Rust via Tauri).
@@ -775,43 +785,71 @@ export async function setGroupVisualIconInVault(
   kdbx: Kdbx,
   group: KdbxGroup,
   iconId: GroupLucideIconId | null,
+  colorId: GroupIconColorId | null = null,
 ): Promise<SetGroupVisualIconResult> {
   if (!filePath || !kdbx || !group) {
     return { ok: false, error: "Estado invalido para alterar icone do grupo." };
   }
 
   const hadCustomData = !!group.customData;
-  const oldItem = group.customData?.get(SEC_BASIS_GROUP_ICON_KEY);
+  const oldIconItem = group.customData?.get(SEC_BASIS_GROUP_ICON_KEY);
+  const oldColorItem = group.customData?.get(SEC_BASIS_GROUP_ICON_COLOR_KEY);
 
   try {
     setGroupLucideIconId(group, iconId);
+    setGroupIconColorId(group, colorId);
     group.times.update();
 
     const result = await saveVault(filePath, kdbx);
     if (!result.ok) {
-      if (!hadCustomData) {
-        group.customData = undefined;
-      } else if (oldItem) {
-        group.customData?.set(SEC_BASIS_GROUP_ICON_KEY, oldItem);
-      } else {
-        group.customData?.delete(SEC_BASIS_GROUP_ICON_KEY);
-      }
+      restoreGroupVisualCustomData(group, {
+        hadCustomData,
+        oldIconItem,
+        oldColorItem,
+      });
       return { ok: false, error: result.error };
     }
 
     return { ok: true, durationMs: result.durationMs };
   } catch (e) {
-    if (!hadCustomData) {
-      group.customData = undefined;
-    } else if (oldItem) {
-      group.customData?.set(SEC_BASIS_GROUP_ICON_KEY, oldItem);
-    } else {
-      group.customData?.delete(SEC_BASIS_GROUP_ICON_KEY);
-    }
+    restoreGroupVisualCustomData(group, {
+      hadCustomData,
+      oldIconItem,
+      oldColorItem,
+    });
     return {
       ok: false,
       error: `Erro ao alterar icone do grupo: ${describeError(e)}`,
     };
+  }
+}
+
+function restoreGroupVisualCustomData(
+  group: KdbxGroup,
+  snapshot: {
+    hadCustomData: boolean;
+    oldIconItem: KdbxGroupCustomDataItem | undefined;
+    oldColorItem: KdbxGroupCustomDataItem | undefined;
+  },
+): void {
+  if (!snapshot.hadCustomData) {
+    group.customData = undefined;
+    return;
+  }
+
+  if (snapshot.oldIconItem) {
+    group.customData?.set(SEC_BASIS_GROUP_ICON_KEY, snapshot.oldIconItem);
+  } else {
+    group.customData?.delete(SEC_BASIS_GROUP_ICON_KEY);
+  }
+
+  if (snapshot.oldColorItem) {
+    group.customData?.set(
+      SEC_BASIS_GROUP_ICON_COLOR_KEY,
+      snapshot.oldColorItem,
+    );
+  } else {
+    group.customData?.delete(SEC_BASIS_GROUP_ICON_COLOR_KEY);
   }
 }
 

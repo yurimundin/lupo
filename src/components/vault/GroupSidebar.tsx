@@ -23,7 +23,7 @@ import { useRenameGroup } from "@/hooks/useRenameGroup";
 import { useRestoreGroup } from "@/hooks/useRestoreGroup";
 import { useSetGroupIcon } from "@/hooks/useSetGroupIcon";
 import { confirmDialog } from "@/lib/confirm";
-import type { GroupLucideIconId } from "@/lib/group-icons";
+import type { GroupIconColorId, GroupLucideIconId } from "@/lib/group-icons";
 import { useSettingsStore } from "@/stores/settings";
 import {
   type GroupTreeNode,
@@ -236,8 +236,9 @@ export function GroupSidebar() {
   async function handleConfirmIcon(
     group: KdbxGroup,
     iconId: GroupLucideIconId | null,
+    colorId: GroupIconColorId | null,
   ): Promise<boolean> {
-    return setGroupIcon(group, iconId);
+    return setGroupIcon(group, iconId, colorId);
   }
 
   /**

@@ -2,20 +2,21 @@ import { useCallback } from "react";
 import type { KdbxGroup } from "kdbxweb";
 import { toast } from "sonner";
 
-import type { GroupLucideIconId } from "@/lib/group-icons";
+import type { GroupIconColorId, GroupLucideIconId } from "@/lib/group-icons";
 import { setGroupVisualIconInVault } from "@/lib/kdbx";
 import { useVaultStore } from "@/stores/vault";
 
 export function useSetGroupIcon(): (
   group: KdbxGroup,
   iconId: GroupLucideIconId | null,
+  colorId: GroupIconColorId | null,
 ) => Promise<boolean> {
   const kdbx = useVaultStore((s) => s.kdbx);
   const lastFilePath = useVaultStore((s) => s.lastFilePath);
   const incrementVaultVersion = useVaultStore((s) => s.incrementVaultVersion);
 
   return useCallback(
-    async (group, iconId) => {
+    async (group, iconId, colorId) => {
       if (!kdbx || !lastFilePath) {
         toast.error("Cofre nao esta aberto.");
         return false;
@@ -26,6 +27,7 @@ export function useSetGroupIcon(): (
         kdbx,
         group,
         iconId,
+        colorId,
       );
 
       if (!result.ok) {

@@ -14,6 +14,7 @@ import {
   Server,
   Shield,
   ShoppingCart,
+  Scale,
   Star,
   TriangleAlert,
   User,
@@ -25,12 +26,14 @@ import {
 import type { KdbxGroup } from "kdbxweb";
 
 export const SEC_BASIS_GROUP_ICON_KEY = "sec.basis.groupIcon";
+export const SEC_BASIS_GROUP_ICON_COLOR_KEY = "sec.basis.groupIconColor";
 
 export const GROUP_ICON_OPTIONS = [
   { id: "folder", label: "Pasta", icon: Folder },
   { id: "briefcase", label: "Trabalho", icon: BriefcaseBusiness },
   { id: "home", label: "Casa", icon: Home },
   { id: "bank", label: "Banco", icon: Landmark },
+  { id: "scale", label: "Jurídico", icon: Scale },
   { id: "card", label: "Cartoes", icon: CreditCard },
   { id: "wallet", label: "Carteira", icon: WalletCards },
   { id: "server", label: "Servidor", icon: Server },
@@ -51,13 +54,72 @@ export const GROUP_ICON_OPTIONS = [
 
 export type GroupLucideIconId = (typeof GROUP_ICON_OPTIONS)[number]["id"];
 
+export const GROUP_ICON_COLOR_OPTIONS = [
+  {
+    id: "default",
+    label: "Padrão",
+    className: "text-brand-tertiary",
+    swatchClassName: "bg-brand-tertiary",
+  },
+  {
+    id: "blue",
+    label: "Azul",
+    className: "text-blue-500",
+    swatchClassName: "bg-blue-500",
+  },
+  {
+    id: "green",
+    label: "Verde",
+    className: "text-emerald-500",
+    swatchClassName: "bg-emerald-500",
+  },
+  {
+    id: "amber",
+    label: "Âmbar",
+    className: "text-amber-500",
+    swatchClassName: "bg-amber-500",
+  },
+  {
+    id: "red",
+    label: "Vermelho",
+    className: "text-rose-500",
+    swatchClassName: "bg-rose-500",
+  },
+  {
+    id: "purple",
+    label: "Roxo",
+    className: "text-violet-500",
+    swatchClassName: "bg-violet-500",
+  },
+  {
+    id: "cyan",
+    label: "Ciano",
+    className: "text-cyan-500",
+    swatchClassName: "bg-cyan-500",
+  },
+  {
+    id: "slate",
+    label: "Cinza",
+    className: "text-slate-500",
+    swatchClassName: "bg-slate-500",
+  },
+] as const;
+
+export type GroupIconColorId = (typeof GROUP_ICON_COLOR_OPTIONS)[number]["id"];
+
 const GROUP_ICON_IDS = new Set<string>(
   GROUP_ICON_OPTIONS.map((option) => option.id),
+);
+const GROUP_ICON_COLOR_IDS = new Set<string>(
+  GROUP_ICON_COLOR_OPTIONS.map((option) => option.id),
 );
 
 export const GROUP_ICON_BY_ID = Object.fromEntries(
   GROUP_ICON_OPTIONS.map((option) => [option.id, option.icon]),
 ) as Record<GroupLucideIconId, LucideIcon>;
+export const GROUP_ICON_COLOR_BY_ID = Object.fromEntries(
+  GROUP_ICON_COLOR_OPTIONS.map((option) => [option.id, option]),
+) as Record<GroupIconColorId, (typeof GROUP_ICON_COLOR_OPTIONS)[number]>;
 
 export function normalizeGroupLucideIconId(
   value: string | null | undefined,
@@ -66,11 +128,24 @@ export function normalizeGroupLucideIconId(
   return value as GroupLucideIconId;
 }
 
+export function normalizeGroupIconColorId(
+  value: string | null | undefined,
+): GroupIconColorId | null {
+  if (!value || !GROUP_ICON_COLOR_IDS.has(value)) return null;
+  return value as GroupIconColorId;
+}
+
 export function getGroupLucideIconId(
   group: KdbxGroup,
 ): GroupLucideIconId | null {
   return normalizeGroupLucideIconId(
     group.customData?.get(SEC_BASIS_GROUP_ICON_KEY)?.value,
+  );
+}
+
+export function getGroupIconColorId(group: KdbxGroup): GroupIconColorId | null {
+  return normalizeGroupIconColorId(
+    group.customData?.get(SEC_BASIS_GROUP_ICON_COLOR_KEY)?.value,
   );
 }
 
@@ -86,6 +161,22 @@ export function setGroupLucideIconId(
   group.customData ??= new Map();
   group.customData.set(SEC_BASIS_GROUP_ICON_KEY, {
     value: iconId,
+    lastModified: new Date(),
+  });
+}
+
+export function setGroupIconColorId(
+  group: KdbxGroup,
+  colorId: GroupIconColorId | null,
+): void {
+  if (!colorId || colorId === "default") {
+    group.customData?.delete(SEC_BASIS_GROUP_ICON_COLOR_KEY);
+    return;
+  }
+
+  group.customData ??= new Map();
+  group.customData.set(SEC_BASIS_GROUP_ICON_COLOR_KEY, {
+    value: colorId,
     lastModified: new Date(),
   });
 }

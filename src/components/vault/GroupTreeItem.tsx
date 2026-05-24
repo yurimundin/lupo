@@ -17,7 +17,7 @@
 import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import type { KdbxGroup } from "kdbxweb";
 
-import { GROUP_ICON_BY_ID } from "@/lib/group-icons";
+import { GROUP_ICON_BY_ID, GROUP_ICON_COLOR_BY_ID } from "@/lib/group-icons";
 import { cn } from "@/lib/utils";
 import type { GroupTreeNode } from "@/stores/vault";
 
@@ -71,6 +71,8 @@ export function GroupTreeItem({
   const Icon = node.isRecycleBin
     ? Trash2
     : GROUP_ICON_BY_ID[node.iconId ?? "folder"];
+  const iconColorClass =
+    GROUP_ICON_COLOR_BY_ID[node.iconColorId ?? "default"].className;
 
   // Resolver KdbxGroup do nó para o context menu. Defense in depth:
   // se a árvore estiver dessincronizada com kdbx, retorna null e o
@@ -126,9 +128,7 @@ export function GroupTreeItem({
         <Icon
           className={cn(
             "size-4 shrink-0",
-            node.isRecycleBin
-              ? "text-muted-foreground"
-              : "text-brand-tertiary",
+            node.isRecycleBin ? "text-muted-foreground" : iconColorClass,
           )}
         />
         <span className="flex-1 truncate">{node.name}</span>
