@@ -32,10 +32,9 @@ O **Sec.Basis** preenche essa lacuna com:
 
 🚧 **Em desenvolvimento ativo.** O MVP funcional está implementado
 (CRUD completo, gerador de senhas, persistência atômica com backup,
-soft-delete via Recycle Bin compatível com KeePass). A primeira alpha
-Windows já pode ser empacotada manualmente para testers conhecidos; a
-distribuição pública ampla ainda aguarda assinatura de código, auto-update e
-mais validação de campo.
+soft-delete via Recycle Bin compatível com KeePass). A release Windows já pode
+ser empacotada manualmente para validação controlada; a distribuição pública
+ampla ainda aguarda assinatura de código, auto-update e mais validação de campo.
 
 ## Site oficial
 
@@ -121,7 +120,7 @@ Princípios de design que guiam o projeto:
   - ✅ Tela "Sobre" com versão e links (acessível pelo botão Info no header)
   - ✅ Subgrupos expansíveis na sidebar (hierarquia recursiva, persistência por cofre)
   - ✅ Busca em tempo real (substring case-insensitive em Title/UserName/URL/Notes, cross-group excluindo Lixeira, atalho Ctrl+F)
-  - ✅ Empacotamento Windows alpha manual (instaladores `.msi` e `.exe` via Tauri)
+  - ✅ Empacotamento Windows manual (instaladores `.msi` e `.exe` via Tauri)
   - ✅ Suíte unitária inicial (Vitest + CI)
   - ✅ Motor offline de força/auditoria de senhas
   - ✅ Recuperação guiada para `.tmp`/`.bak` após crash ou gravação interrompida
