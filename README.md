@@ -139,7 +139,7 @@ Princípios de design que guiam o projeto:
   importação Bitwarden/1Password/LastPass.
 
 - **Fase 3:** Extensão de browser para auto-fill, modo equipe via pasta
-  sincronizada, painel de saúde do cofre (LGPD-friendly).
+  sincronizada, aplicativo Android e painel de saúde do cofre (LGPD-friendly).
 
 Detalhes em [`CLAUDE.md`](CLAUDE.md).
 
