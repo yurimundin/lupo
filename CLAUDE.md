@@ -2001,7 +2001,7 @@ grupo.
 **Esquema:** Semantic Versioning (SemVer) —
 `MAJOR.MINOR.PATCH[-pre-release]`.
 
-**Versão atual:** `0.1.3`. Release Windows de validação controlada, ainda sem
+**Versão atual:** `0.1.4`. Release Windows de validação controlada, ainda sem
 assinatura de código e sem auto-update.
 Convenção de bumps:
 

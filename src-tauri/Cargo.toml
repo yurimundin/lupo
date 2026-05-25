@@ -1,6 +1,6 @@
 [package]
 name = "secbasis"
-version = "0.1.3"
+version = "0.1.4"
 description = "Sec.Basis password manager"
 authors = ["Yuri Mundin Ferreira"]
 edition = "2021"
