@@ -102,14 +102,18 @@ export function NewGroupDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Novo grupo</DialogTitle>
-          {!parentIsRoot && (
-            <DialogDescription>
-              Subgrupo de:{" "}
-              <span className="font-medium text-foreground">
-                {parent.name ?? "(sem nome)"}
-              </span>
-            </DialogDescription>
-          )}
+          <DialogDescription>
+            {parentIsRoot ? (
+              "Crie uma nova pasta no cofre."
+            ) : (
+              <>
+                Subgrupo de:{" "}
+                <span className="font-medium text-foreground">
+                  {parent.name ?? "(sem nome)"}
+                </span>
+              </>
+            )}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2">

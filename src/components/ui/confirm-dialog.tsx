@@ -53,7 +53,9 @@ export function ConfirmDialog({
       <DialogContent showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
+          <DialogDescription className={description ? undefined : "sr-only"}>
+            {description ?? "Confirme se deseja continuar com esta ação."}
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel}>

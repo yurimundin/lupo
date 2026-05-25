@@ -2,12 +2,13 @@
 // (Sessão 17), indicadores de save/auto-lock, toggle de tema (Sessão 20)
 // e botões de configurações/sobre/bloquear.
 
-import { Info, Lock as LockIcon, Settings } from "lucide-react";
+import { Info, Lock as LockIcon, Settings, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
 import { AboutDialog } from "@/components/AboutDialog";
 import { SecuritySettingsDialog } from "@/components/SecuritySettingsDialog";
 import { Button } from "@/components/ui/button";
+import { VaultAuditDialog } from "@/components/VaultAuditDialog";
 import { SearchInput } from "@/components/vault/SearchInput";
 import { requestLockWithGuard } from "@/lib/lock-flow";
 import {
@@ -26,6 +27,7 @@ export function VaultHeader() {
   const setSearchQuery = useVaultStore((s) => s.setSearchQuery);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
 
   return (
     <header className="h-12 shrink-0 flex items-center gap-3 px-4 border-b border-border bg-bg-secondary">
@@ -65,6 +67,16 @@ export function VaultHeader() {
       <Button
         variant="ghost"
         size="icon"
+        onClick={() => setAuditOpen(true)}
+        aria-label="Auditoria do cofre"
+        title="Auditoria do cofre"
+      >
+        <ShieldCheck />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={() => setSettingsOpen(true)}
         aria-label="Configurações de segurança"
         title="Configurações de segurança"
@@ -100,6 +112,7 @@ export function VaultHeader() {
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
       />
+      <VaultAuditDialog open={auditOpen} onOpenChange={setAuditOpen} />
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
     </header>
   );

@@ -27,6 +27,8 @@ O **Sec.Basis** preenche essa lacuna com:
   cofre em qualquer um dos três.
 - **Organização visual moderna** — grupos em árvore, ordenação alfabética,
   Lixeira sempre no fim e ícones Lucide com cores por pasta.
+- **Auditoria local do cofre** — painel offline com senhas fracas,
+  reutilizadas, antigas, duplicidades e metadados ausentes.
 - **Recuperação guiada** — se uma gravação for interrompida, o app detecta
   arquivos `.tmp`/`.bak` e oferece restauração conservadora.
 
@@ -130,10 +132,11 @@ Princípios de design que guiam o projeto:
   - ✅ Empacotamento Windows manual (instaladores `.msi` e `.exe` via Tauri)
   - ✅ Suíte unitária inicial (Vitest + CI)
   - ✅ Motor offline de força/auditoria de senhas
+  - ✅ UI de auditoria do cofre no header, com resumo por severidade e recomendações
   - ✅ Recuperação guiada para `.tmp`/`.bak` após crash ou gravação interrompida
 
-- **Fase 2:** UI de auditoria do cofre, YubiKey, TOTP, anexos, importação
-  Bitwarden/1Password/LastPass.
+- **Fase 2:** ações guiadas a partir da auditoria, YubiKey, TOTP, anexos,
+  importação Bitwarden/1Password/LastPass.
 
 - **Fase 3:** Extensão de browser para auto-fill, modo equipe via pasta
   sincronizada, painel de saúde do cofre (LGPD-friendly).

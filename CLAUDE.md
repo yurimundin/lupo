@@ -121,6 +121,8 @@ Objetivo: substituir o KeePassXC para o uso pessoal do Yuri.
 - [ ] Busca textual nas entradas.
 - [ ] Sidebar de grupos com hierarquia recursiva, ordenação alfabética,
       Lixeira sempre no fim, e personalização visual por ícone/cor.
+- [ ] UI de auditoria local do cofre com resumo por severidade e lista de
+      recomendações.
 - [ ] Salvar com backup automático (`.kdbx.bak`).
 - [ ] Auto-lock por inatividade (configurável).
 - [ ] Tema claro/escuro (segue o sistema).
@@ -142,7 +144,8 @@ Objetivo: virar uma alternativa real a KeePassXC.
 - [ ] Histórico de senhas por entrada.
 - [ ] Lixeira interna (soft-delete) com restauração.
 - [ ] Importação a partir de Bitwarden, 1Password, LastPass (CSV/JSON).
-- [ ] Auditoria de senhas (fracas, repetidas, antigas).
+- [ ] Ações guiadas a partir da auditoria (navegar para entrada, filtrar por
+      tipo/severidade, orientar troca de senha sem automação destrutiva).
 - [ ] Atalhos de teclado completos.
 - [ ] Localização: en-US e es-ES além de pt-BR.
 - [ ] **Modo somente-leitura:** abrir cofre sem permissão de escrita, para
@@ -2057,8 +2060,40 @@ faça essa cópia automaticamente.
   visível no header é suficiente.
 - **Sem créditos pessoais ("criado por Yuri").** Decisão UX — modal
   About do MVP foca em produto, não em autoria.
-- **Sem tag git `v0.1.0-alpha`** ainda. Tag será criada na Sessão de
-  release (quando houver MSI/EXE empacotado distribuído publicamente).
+
+---
+
+## 23.1 Auditoria visível do cofre
+
+Componente principal:
+[src/components/VaultAuditDialog.tsx](src/components/VaultAuditDialog.tsx).
+
+**Acesso:** botão `ShieldCheck` no
+[VaultHeader](src/components/layout/VaultHeader.tsx), ao lado das ações globais
+do cofre. Tooltip e `aria-label`: "Auditoria do cofre".
+
+**Fonte de dados:** `useAllEntries()` em
+[src/stores/vault.ts](src/stores/vault.ts), que coleta todas as entradas fora
+da Lixeira. A auditoria não lê nem exibe senhas; apenas usa o motor local
+[src/lib/vault-audit.ts](src/lib/vault-audit.ts) para classificar achados.
+
+**O que a UI mostra:**
+
+- total de entradas analisadas;
+- contadores por severidade: Crítico, Atenção e Baixo;
+- lista ordenada por severidade;
+- título, descrição e recomendação de cada achado;
+- indicação quando uma descoberta afeta múltiplas entradas.
+
+**Escopo deliberado:** esta primeira UI é informativa. Não há correção
+automática, edição em massa ou navegação direta para a entrada. Próximo
+incremento natural: clicar em um achado para selecionar a entrada afetada e
+fechar o modal, mantendo o usuário no fluxo normal de edição.
+
+**Acessibilidade associada:** diálogos que podiam abrir sem
+`DialogDescription` receberam descrição padrão ou específica. O
+`ConfirmDialog` agora sempre fornece descrição acessível, mesmo quando o
+caller passa apenas o título.
 
 ---
 
