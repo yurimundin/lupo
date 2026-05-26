@@ -14,11 +14,13 @@
 import type { KdbxGroup } from "kdbxweb";
 import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { PoweredByBasis } from "@/components/layout/PoweredByBasis";
 import { Button } from "@/components/ui/button";
 import { useCreateGroup } from "@/hooks/useCreateGroup";
 import { useDeleteGroup } from "@/hooks/useDeleteGroup";
+import { useMoveEntryToGroup } from "@/hooks/useMoveEntryToGroup";
 import { useRenameGroup } from "@/hooks/useRenameGroup";
 import { useRestoreGroup } from "@/hooks/useRestoreGroup";
 import { useSetGroupIcon } from "@/hooks/useSetGroupIcon";
@@ -27,6 +29,7 @@ import type { GroupIconColorId, GroupLucideIconId } from "@/lib/group-icons";
 import { useSettingsStore } from "@/stores/settings";
 import {
   type GroupTreeNode,
+  findEntryByUuidIdInDb,
   findGroupByUuidIdInDb,
   getHasUnsavedChanges,
   useGroupTree,
@@ -122,6 +125,7 @@ export function GroupSidebar() {
   const deleteGroup = useDeleteGroup();
   const restoreGroup = useRestoreGroup();
   const setGroupIcon = useSetGroupIcon();
+  const moveEntryToGroup = useMoveEntryToGroup();
   const [isNewGroupOpen, setIsNewGroupOpen] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isIconDialogOpen, setIsIconDialogOpen] = useState(false);
@@ -149,6 +153,22 @@ export function GroupSidebar() {
     (uuid: string): KdbxGroup | null =>
       kdbx ? findGroupByUuidIdInDb(kdbx, uuid) : null,
     [kdbx],
+  );
+
+  const handleMoveEntryToGroup = useCallback(
+    (entryUuid: string, targetGroup: KdbxGroup) => {
+      if (!kdbx) {
+        toast.error("Cofre não está pronto.");
+        return;
+      }
+      const entry = findEntryByUuidIdInDb(kdbx, entryUuid);
+      if (!entry) {
+        toast.error("Entrada não encontrada.");
+        return;
+      }
+      void moveEntryToGroup(entry, targetGroup);
+    },
+    [kdbx, moveEntryToGroup],
   );
 
   // Walk-up para detectar se o grupo selecionado é (ou descende da) Lixeira.
@@ -380,6 +400,7 @@ export function GroupSidebar() {
             onRename={handleRename}
             onDelete={(group) => void handleDelete(group)}
             onRestore={(group) => void handleRestore(group)}
+            onMoveEntryToGroup={handleMoveEntryToGroup}
           />
         ))}
       </div>

@@ -63,6 +63,7 @@ vi.mock("kdbxweb", () => {
 import {
   createVault,
   emptyRecycleBin,
+  moveEntryToGroup,
   moveEntryToRecycleBin,
   restoreEntryFromRecycleBin,
   saveVault,
@@ -235,6 +236,51 @@ describe("kdbx helpers", () => {
     expect(item.parentGroup).toBe(root);
     expect(root.entries).toContain(item);
     expect(recycleBin.entries).not.toContain(item);
+  });
+
+  it("moves an entry to another group and persists the vault", async () => {
+    const { db, root } = makeDb();
+    const source = group("source", "Source");
+    const target = group("target", "Target");
+    attachGroup(root, source);
+    attachGroup(root, target);
+    const item = entry("entry");
+    attachEntry(source, item);
+
+    const result = await moveEntryToGroup(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      asGroup(target),
+    );
+
+    expect(result).toEqual({ ok: true, durationMs: 12 });
+    expect(item.parentGroup).toBe(target);
+    expect(target.entries).toContain(item);
+    expect(source.entries).not.toContain(item);
+  });
+
+  it("rolls an entry back to its original group when moving to another group fails", async () => {
+    const { db, root } = makeDb();
+    const source = group("source", "Source");
+    const target = group("target", "Target");
+    attachGroup(root, source);
+    attachGroup(root, target);
+    const item = entry("entry");
+    attachEntry(source, item);
+    invokeMock.mockRejectedValue("save falhou");
+
+    const result = await moveEntryToGroup(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      asGroup(target),
+    );
+
+    expect(result).toEqual({ ok: false, error: "save falhou" });
+    expect(item.parentGroup).toBe(source);
+    expect(source.entries).toContain(item);
+    expect(target.entries).not.toContain(item);
   });
 
   it("rolls a restored entry back into the recycle bin when save fails", async () => {

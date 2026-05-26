@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useEmptyRecycleBin } from "@/hooks/useEmptyRecycleBin";
 import { confirmDialog } from "@/lib/confirm";
+import { ENTRY_DRAG_MIME } from "@/lib/drag-drop";
 import {
   getAvatarColorClass,
   getGroupPath,
@@ -138,6 +139,29 @@ export function EntryList() {
     enterCreateMode(selectedGroupUuid);
   }
 
+  function canDragEntry(entry: (typeof sorted)[number]): boolean {
+    if (!recycleBinUuidId) return true;
+    let group = entry.parentGroup;
+    while (group) {
+      if (group.uuid.id === recycleBinUuidId) return false;
+      group = group.parentGroup;
+    }
+    return true;
+  }
+
+  function handleDragStart(
+    e: React.DragEvent<HTMLButtonElement>,
+    entry: (typeof sorted)[number],
+  ) {
+    if (!canDragEntry(entry)) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData(ENTRY_DRAG_MIME, entry.uuid.id);
+    e.dataTransfer.setData("text/plain", entry.uuid.id);
+  }
+
   // Esvaziar Lixeira: hard-delete em massa. Hook trata confirmDialog
   // (com lembrete de backup), persistência e toasts. `emptying` evita
   // double-click disparar dois saves em paralelo.
@@ -245,15 +269,19 @@ export function EntryList() {
             const url = getUrl(entry);
             const subtitle = username || url || "";
             const selected = entry.uuid.id === selectedEntryUuid;
+            const draggable = canDragEntry(entry);
             return (
               <li key={entry.uuid.id}>
                 <button
                   type="button"
                   data-entry-uuid={entry.uuid.id}
+                  draggable={draggable}
+                  onDragStart={(e) => handleDragStart(e, entry)}
                   onClick={() => void handleEntryClick(entry.uuid.id)}
                   onKeyDown={(e) => void handleKeyDown(e, idx)}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                    draggable && "cursor-grab active:cursor-grabbing",
                     selected
                       ? "bg-selected-entry border-l-2 border-l-selected-border"
                       : "border-l-2 border-l-transparent hover:bg-muted",
