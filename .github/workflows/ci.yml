@@ -66,11 +66,12 @@ jobs:
         working-directory: src-tauri
         run: cargo check --all-targets
 
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
       - name: Audit Rust dependencies
-        uses: rustsec/audit-check@v2
-        with:
-          working-directory: src-tauri
-          token: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: src-tauri
+        run: cargo audit
 
   windows-bundle:
     name: Windows Tauri bundle
