@@ -138,8 +138,8 @@ Princípios de design que guiam o projeto:
 - **Fase 2:** ações guiadas a partir da auditoria, YubiKey, TOTP, anexos,
   importação Bitwarden/1Password/LastPass.
 
-- **Fase 3:** Extensão de browser para auto-fill, modo equipe via pasta
-  sincronizada, aplicativo Android e painel de saúde do cofre (LGPD-friendly).
+- **Fase 3:** Extensão de browser para auto-fill, aplicativo Android e painel
+  de saúde do cofre (LGPD-friendly).
 
 Detalhes em [`CLAUDE.md`](CLAUDE.md).
 

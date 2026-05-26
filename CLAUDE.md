@@ -157,8 +157,6 @@ Objetivo: o que ninguém mais entrega bem.
 
 - [ ] Auto-fill no navegador via extensão própria (Chromium/Firefox), com
       comunicação local segura (sem nuvem).
-- [ ] Modo "compartilhado em equipe" via arquivo `.kdbx` em pasta
-      sincronizada (OneDrive/Drive/Dropbox), com locking cooperativo.
 - [ ] Verificação de vazamentos via HIBP **k-anonymity offline-first opcional**
       (usuário precisa habilitar explicitamente — quebra parcial do
       offline-first, deve ser opt-in claro).
@@ -214,13 +212,15 @@ próprio (nem hospedado, nem self-hostable).
 2. Exige infraestrutura (servidor de referência, atualizações, suporte) que
    destrói o modelo "binário leve, distribuído, audita você mesmo".
 3. Mercado já atendido: quem quer self-host roda Bitwarden/Vaultwarden.
-4. Caso de uso real do usuário (cofre acessível em mais de um dispositivo)
-   já é resolvido por OneDrive/Drive/Dropbox + arquivo `.kdbx` na pasta
-   sincronizada — comportamento padrão do KeePass há décadas. A Fase 3 trata
-   isso explicitamente com locking cooperativo.
+4. Caso de uso pessoal em mais de um dispositivo pode continuar usando
+   OneDrive/Drive/Dropbox + arquivo `.kdbx` escolhido pelo usuário, mas isso
+   é apenas armazenamento/sincronização externo do arquivo, não um modo equipe
+   do Sec.Basis.
 
 **Implicação:** propostas/issues pedindo "Sec.Basis Cloud" devem ser
-fechadas com link para esta seção.
+fechadas com link para esta seção. Propostas de "modo equipe" via pasta
+sincronizada também ficam fora do roadmap; colaboração real exigiria outro
+produto/arquitetura, não locking cooperativo no arquivo local.
 
 ### Path do key file por cofre — **TEXTO PURO** (não criptografado)
 
