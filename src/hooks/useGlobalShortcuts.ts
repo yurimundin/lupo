@@ -17,7 +17,15 @@ import { getPassword } from "@/lib/entry-helpers";
 import { requestLockWithGuard } from "@/lib/lock-flow";
 import { findEntryByUuidIdInDb, useVaultStore } from "@/stores/vault";
 
-export function useGlobalShortcuts(): void {
+interface GlobalShortcutsOptions {
+  onOpenCommandPalette?: () => void;
+}
+
+export function useGlobalShortcuts(
+  options: GlobalShortcutsOptions = {},
+): void {
+  const { onOpenCommandPalette } = options;
+
   useEffect(() => {
     function handler(e: KeyboardEvent) {
       // Esc: desfoca elemento atual. Em modo edit/create, o EntryEditor
@@ -34,6 +42,12 @@ export function useGlobalShortcuts(): void {
       if (!ctrl) return;
 
       const key = e.key.toLowerCase();
+
+      if (key === "k") {
+        e.preventDefault();
+        onOpenCommandPalette?.();
+        return;
+      }
 
       if (key === "l") {
         e.preventDefault();
@@ -80,5 +94,5 @@ export function useGlobalShortcuts(): void {
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [onOpenCommandPalette]);
 }

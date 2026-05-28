@@ -6,14 +6,17 @@
 
 import {
   Copy,
+  Download,
   ExternalLink,
   Eye,
   EyeOff,
+  File,
   FolderInput,
   Inbox,
   KeyRound,
   Link as LinkIcon,
   Pencil,
+  Plus,
   Star,
   StickyNote,
   Trash2,
@@ -24,6 +27,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useDeleteEntry } from "@/hooks/useDeleteEntry";
+import { useEntryAttachments } from "@/hooks/useEntryAttachments";
 import { useMoveEntryToGroup } from "@/hooks/useMoveEntryToGroup";
 import { useRestoreEntry } from "@/hooks/useRestoreEntry";
 import { useSetEntryFavorite } from "@/hooks/useSetEntryFavorite";
@@ -39,6 +43,7 @@ import {
   isEntryFavorite,
 } from "@/lib/entry-helpers";
 import { openExternalSafe } from "@/lib/external";
+import { getEntryAttachments } from "@/lib/kdbx";
 import { cn } from "@/lib/utils";
 import {
   getGroupDisplayName,
@@ -64,11 +69,15 @@ export function EntryDetail() {
   const moveEntryToGroup = useMoveEntryToGroup();
   const restoreEntry = useRestoreEntry();
   const setEntryFavorite = useSetEntryFavorite();
+  const { addAttachment, exportAttachment, removeAttachment } =
+    useEntryAttachments();
+  const vaultVersion = useVaultStore((s) => s.vaultVersion);
 
   const [showPassword, setShowPassword] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [favoriting, setFavoriting] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [attachmentAction, setAttachmentAction] = useState<string | null>(null);
 
   // Auto-oculta a senha após 10s sempre que ela é mostrada.
   useEffect(() => {
@@ -92,6 +101,9 @@ export function EntryDetail() {
   }
 
   const password = useMemo(() => (entry ? getPassword(entry) : ""), [entry]);
+  // Assina vaultVersion para re-renderizar quando anexos mudam in-place.
+  void vaultVersion;
+  const attachments = entry ? getEntryAttachments(entry) : [];
 
   // Atalhos globais do detail (em modo view):
   // - Ctrl+E: entra em edit (entry não-lixeira selecionada).
@@ -193,6 +205,38 @@ export function EntryDetail() {
   >[1]): Promise<boolean> {
     if (!entry) return false;
     return moveEntryToGroup(entry, targetGroup);
+  }
+
+  async function runAttachmentAction(
+    actionKey: string,
+    action: () => Promise<boolean>,
+  ): Promise<void> {
+    if (attachmentAction) return;
+    setAttachmentAction(actionKey);
+    try {
+      await action();
+    } finally {
+      setAttachmentAction(null);
+    }
+  }
+
+  function handleAddAttachment() {
+    if (!entry || inRecycleBin) return;
+    void runAttachmentAction("add", () => addAttachment(entry));
+  }
+
+  function handleExportAttachment(attachmentName: string) {
+    if (!entry) return;
+    void runAttachmentAction(`export:${attachmentName}`, () =>
+      exportAttachment(entry, attachmentName),
+    );
+  }
+
+  function handleRemoveAttachment(attachmentName: string) {
+    if (!entry || inRecycleBin) return;
+    void runAttachmentAction(`remove:${attachmentName}`, () =>
+      removeAttachment(entry, attachmentName),
+    );
   }
 
   // Restaurar entry da Lixeira para o grupo raiz. Sem confirmDialog
@@ -369,6 +413,93 @@ export function EntryDetail() {
         />
       )}
 
+      <div className="rounded-md border border-border bg-bg-secondary px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <File className="size-4" />
+            <span className="font-medium">Anexos</span>
+            {attachments.length > 0 && (
+              <span className="text-[11px] text-muted-foreground/80">
+                {attachments.length}
+              </span>
+            )}
+          </div>
+          {!inRecycleBin && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleAddAttachment}
+              disabled={attachmentAction !== null}
+              title="Adicionar anexo"
+            >
+              <Plus />
+              Anexar
+            </Button>
+          )}
+        </div>
+
+        {attachments.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhum anexo nesta entrada.
+          </p>
+        ) : (
+          <ul className="space-y-1">
+            {attachments.map((attachment) => {
+              const exportKey = `export:${attachment.name}`;
+              const removeKey = `remove:${attachment.name}`;
+              return (
+                <li
+                  key={attachment.name}
+                  className="flex items-center gap-2 rounded-md border border-border/70 bg-background px-2 py-1.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {attachment.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatAttachmentSize(attachment.sizeBytes)}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => handleExportAttachment(attachment.name)}
+                    disabled={attachmentAction !== null}
+                    title="Salvar anexo como..."
+                    aria-label={`Salvar anexo ${attachment.name} como`}
+                  >
+                    <Download />
+                  </Button>
+                  {!inRecycleBin && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleRemoveAttachment(attachment.name)}
+                      disabled={attachmentAction !== null}
+                      title="Remover anexo"
+                      aria-label={`Remover anexo ${attachment.name}`}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      {attachmentAction === removeKey ? (
+                        <Trash2 className="opacity-50" />
+                      ) : (
+                        <Trash2 />
+                      )}
+                    </Button>
+                  )}
+                  {attachmentAction === exportKey && (
+                    <span className="sr-only">Salvando anexo</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
       {rootGroup && (
         <MoveEntryDialog
           open={moveDialogOpen}
@@ -424,4 +555,11 @@ function Field({
       </div>
     </div>
   );
+}
+
+function formatAttachmentSize(sizeBytes: number | null): string {
+  if (sizeBytes === null) return "Tamanho desconhecido";
+  if (sizeBytes < 1024) return `${sizeBytes} B`;
+  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} KB`;
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }

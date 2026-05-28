@@ -61,10 +61,13 @@ vi.mock("kdbxweb", () => {
 });
 
 import {
+  addEntryAttachmentInVault,
   createVault,
   emptyRecycleBin,
+  getEntryAttachments,
   moveEntryToGroup,
   moveEntryToRecycleBin,
+  removeEntryAttachmentInVault,
   restoreEntryFromRecycleBin,
   saveVault,
   setEntryFavoriteInVault,
@@ -79,6 +82,7 @@ interface FakeUuid {
 interface FakeEntry {
   uuid: FakeUuid;
   parentGroup?: FakeGroup;
+  binaries: Map<string, { hash: string; value: ArrayBuffer }>;
   customData?: Map<string, { value: string; lastModified?: Date }>;
   times: { update: () => void };
 }
@@ -97,6 +101,7 @@ interface FakeDb {
   meta: { recycleBinUuid?: FakeUuid };
   deletedObjects: unknown[];
   save: ReturnType<typeof vi.fn>;
+  createBinary: ReturnType<typeof vi.fn>;
   getDefaultGroup: () => FakeGroup;
   getGroup: (uuid: FakeUuid) => FakeGroup | undefined;
   createRecycleBin: () => void;
@@ -104,7 +109,7 @@ interface FakeDb {
 }
 
 function entry(id: string): FakeEntry {
-  return { uuid: { id }, times: { update: vi.fn() } };
+  return { uuid: { id }, binaries: new Map(), times: { update: vi.fn() } };
 }
 
 function group(id: string, name: string): FakeGroup {
@@ -131,11 +136,16 @@ function makeDb(): { db: FakeDb; root: FakeGroup; recycleBin: FakeGroup } {
   const root = group("root", "Root");
   const recycleBin = group("trash", "Recycle Bin");
   attachGroup(root, recycleBin);
+  let binaryId = 0;
 
   const db: FakeDb = {
     meta: { recycleBinUuid: recycleBin.uuid },
     deletedObjects: [],
     save: vi.fn(async () => new Uint8Array([1, 2, 3]).buffer),
+    createBinary: vi.fn(async (value: ArrayBuffer) => {
+      binaryId += 1;
+      return { hash: `hash-${binaryId}`, value };
+    }),
     getDefaultGroup: () => root,
     getGroup: (uuid) => findGroup(root, uuid.id),
     createRecycleBin: vi.fn(() => undefined),
@@ -397,5 +407,97 @@ describe("kdbx helpers", () => {
 
     expect(result).toEqual({ ok: false, error: "save falhou" });
     expect(item.customData.get("sec.basis.entryFavorite")?.value).toBe("true");
+  });
+
+  it("adds an entry attachment as a KDBX binary and persists the vault", async () => {
+    const { db, root } = makeDb();
+    const item = entry("entry");
+    attachEntry(root, item);
+
+    const result = await addEntryAttachmentInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      "contrato.pdf",
+      new Uint8Array([10, 20, 30]),
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      durationMs: 12,
+      attachmentName: "contrato.pdf",
+    });
+    expect(db.createBinary).toHaveBeenCalledOnce();
+    expect(item.binaries.has("contrato.pdf")).toBe(true);
+    expect(getEntryAttachments(asEntry(item))).toEqual([
+      { name: "contrato.pdf", sizeBytes: 3 },
+    ]);
+    expect(item.times.update).toHaveBeenCalled();
+  });
+
+  it("adds a suffix when an entry attachment name already exists", async () => {
+    const { db, root } = makeDb();
+    const item = entry("entry");
+    attachEntry(root, item);
+    item.binaries.set("contrato.pdf", {
+      hash: "existing",
+      value: new Uint8Array([1]).buffer,
+    });
+
+    const result = await addEntryAttachmentInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      "contrato.pdf",
+      new Uint8Array([2]),
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      durationMs: 12,
+      attachmentName: "contrato (2).pdf",
+    });
+    expect(item.binaries.has("contrato.pdf")).toBe(true);
+    expect(item.binaries.has("contrato (2).pdf")).toBe(true);
+  });
+
+  it("rolls an added attachment back when saving fails", async () => {
+    const { db, root } = makeDb();
+    const item = entry("entry");
+    attachEntry(root, item);
+    invokeMock.mockRejectedValue("save falhou");
+
+    const result = await addEntryAttachmentInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      "contrato.pdf",
+      new Uint8Array([10, 20, 30]),
+    );
+
+    expect(result).toEqual({ ok: false, error: "save falhou" });
+    expect(item.binaries.size).toBe(0);
+  });
+
+  it("removes an entry attachment and rolls back when saving fails", async () => {
+    const { db, root } = makeDb();
+    const item = entry("entry");
+    attachEntry(root, item);
+    const originalBinary = {
+      hash: "existing",
+      value: new Uint8Array([1, 2]).buffer,
+    };
+    item.binaries.set("contrato.pdf", originalBinary);
+    invokeMock.mockRejectedValue("save falhou");
+
+    const result = await removeEntryAttachmentInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      "contrato.pdf",
+    );
+
+    expect(result).toEqual({ ok: false, error: "save falhou" });
+    expect(item.binaries.get("contrato.pdf")).toBe(originalBinary);
   });
 });

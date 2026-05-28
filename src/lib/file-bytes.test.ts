@@ -1,0 +1,49 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { invokeMock } = vi.hoisted(() => ({
+  invokeMock: vi.fn(),
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: invokeMock,
+}));
+
+import {
+  getFileNameFromPath,
+  readLocalFileBytes,
+  writeLocalFileBytes,
+} from "./file-bytes";
+
+describe("file byte helpers", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("gets the file name from Windows and Unix paths", () => {
+    expect(getFileNameFromPath("C:\\docs\\contrato.pdf")).toBe("contrato.pdf");
+    expect(getFileNameFromPath("/home/user/contrato.pdf")).toBe("contrato.pdf");
+    expect(getFileNameFromPath("contrato.pdf")).toBe("contrato.pdf");
+  });
+
+  it("reads a local file as Uint8Array through the backend", async () => {
+    invokeMock.mockResolvedValue([1, 2, 3]);
+
+    await expect(readLocalFileBytes("C:/docs/a.txt")).resolves.toEqual(
+      new Uint8Array([1, 2, 3]),
+    );
+    expect(invokeMock).toHaveBeenCalledWith("read_file_bytes", {
+      path: "C:/docs/a.txt",
+    });
+  });
+
+  it("writes local bytes through the backend backup command", async () => {
+    invokeMock.mockResolvedValue(undefined);
+
+    await writeLocalFileBytes("C:/docs/a.txt", new Uint8Array([1, 2, 3]));
+
+    expect(invokeMock).toHaveBeenCalledWith("write_file_with_backup", {
+      path: "C:/docs/a.txt",
+      bytes: [1, 2, 3],
+    });
+  });
+});

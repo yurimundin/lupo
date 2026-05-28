@@ -3,9 +3,12 @@
 // detalhe). Aqui também vivem os hooks que precisam estar ativos durante
 // toda a sessão desbloqueada: auto-lock e atalhos globais.
 
+import { useCallback, useState } from "react";
+
 import { useAutoLock } from "@/hooks/useAutoLock";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 
+import { CommandPalette } from "@/components/CommandPalette";
 import { EntryDetail } from "@/components/vault/EntryDetail";
 import { EntryList } from "@/components/vault/EntryList";
 import { GroupSidebar } from "@/components/vault/GroupSidebar";
@@ -14,8 +17,13 @@ import { KeyFileBanner } from "@/components/vault/KeyFileBanner";
 import { VaultHeader } from "./VaultHeader";
 
 export function VaultLayout() {
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const openCommandPalette = useCallback(() => {
+    setCommandPaletteOpen(true);
+  }, []);
+
   useAutoLock();
-  useGlobalShortcuts();
+  useGlobalShortcuts({ onOpenCommandPalette: openCommandPalette });
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
@@ -32,6 +40,10 @@ export function VaultLayout() {
         <EntryList />
         <EntryDetail />
       </div>
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+      />
     </div>
   );
 }

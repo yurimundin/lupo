@@ -29,6 +29,8 @@ O **Sec.Basis** preenche essa lacuna com:
   Lixeira sempre no fim e ícones Lucide com cores por pasta.
 - **Auditoria local do cofre** — painel offline com senhas fracas,
   reutilizadas, antigas, duplicidades e metadados ausentes.
+- **Anexos compatíveis com KeePass** — arquivos podem ser anexados a entradas
+  e continuam gravados dentro do próprio `.kdbx`.
 - **Recuperação guiada** — se uma gravação for interrompida, o app detecta
   arquivos `.tmp`/`.bak` e oferece restauração conservadora.
 
@@ -131,13 +133,15 @@ Princípios de design que guiam o projeto:
   - ✅ Ordenação alfabética dos grupos na sidebar, com Lixeira sempre por último
   - ✅ Ícones Lucide e cores por pasta, incluindo opção "Jurídico" com ícone de balança
   - ✅ Busca em tempo real (substring case-insensitive em Title/UserName/URL/Notes, cross-group excluindo Lixeira, atalho Ctrl+F)
+  - ✅ Command palette (`Ctrl+K`) para buscar entradas e executar ações rápidas
+  - ✅ Anexos em entradas KDBX, com adicionar, salvar como e remover
   - ✅ Empacotamento Windows manual (instaladores `.msi` e `.exe` via Tauri)
   - ✅ Suíte unitária inicial (Vitest + CI)
   - ✅ Motor offline de força/auditoria de senhas
   - ✅ UI de auditoria do cofre no header, com resumo por severidade, recomendações e ações guiadas
   - ✅ Recuperação guiada para `.tmp`/`.bak` após crash ou gravação interrompida
 
-- **Fase 2:** YubiKey, TOTP, anexos, importação Bitwarden/1Password/LastPass.
+- **Fase 2:** YubiKey, TOTP e histórico amigável de alterações das entradas.
 
 - **Fase 3:** Extensão de browser para auto-fill, aplicativo Android e painel
   de saúde do cofre (LGPD-friendly).

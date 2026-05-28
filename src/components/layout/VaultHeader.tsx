@@ -51,7 +51,7 @@ export function VaultHeader() {
           id="vault-search-input"
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Buscar entradas... (Ctrl+F)"
+          placeholder="Buscar entradas... (Ctrl+F ou Ctrl+K)"
         />
       </div>
 
