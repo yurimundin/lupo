@@ -2,28 +2,33 @@ import type { KdbxEntry, KdbxGroup } from "kdbxweb";
 import { useCallback } from "react";
 import { toast } from "sonner";
 
-import { confirmDialog } from "@/lib/confirm";
+import { useDirtyEntryGuard } from "@/hooks/useDirtyEntryGuard";
 import { getTitle } from "@/lib/entry-helpers";
 import { moveEntryToGroup } from "@/lib/kdbx";
-import { getHasUnsavedChanges, useVaultStore } from "@/stores/vault";
+import { useVaultStore } from "@/stores/vault";
+
+import { useVaultMutationContext } from "./useVaultMutationContext";
 
 export function useMoveEntryToGroup(): (
   entry: KdbxEntry,
   targetGroup: KdbxGroup,
 ) => Promise<boolean> {
-  const kdbx = useVaultStore((s) => s.kdbx);
-  const lastFilePath = useVaultStore((s) => s.lastFilePath);
-  const incrementVaultVersion = useVaultStore((s) => s.incrementVaultVersion);
+  const mutation = useVaultMutationContext();
   const selectGroup = useVaultStore((s) => s.selectGroup);
   const selectEntry = useVaultStore((s) => s.selectEntry);
   const exitToViewMode = useVaultStore((s) => s.exitToViewMode);
+  const confirmDiscardIfDirty = useDirtyEntryGuard({
+    description:
+      "Você tem mudanças não salvas. Mover a entrada vai descartar essas mudanças. Continuar?",
+    confirmLabel: "Descartar e mover",
+  });
 
   return useCallback(
     async (
       entry: KdbxEntry,
       targetGroup: KdbxGroup,
     ): Promise<boolean> => {
-      if (!kdbx || !lastFilePath) {
+      if (!mutation) {
         toast.error("Cofre não está pronto.");
         return false;
       }
@@ -33,22 +38,16 @@ export function useMoveEntryToGroup(): (
         return false;
       }
 
-      if (getHasUnsavedChanges()) {
-        const confirmed = await confirmDialog({
-          title: "Mudanças não salvas",
-          description:
-            "Você tem mudanças não salvas. Mover a entrada vai descartar essas mudanças. Continuar?",
-          confirmLabel: "Descartar e mover",
-          cancelLabel: "Voltar e salvar",
-          variant: "danger",
-        });
-        if (!confirmed) return false;
+      if (!(await confirmDiscardIfDirty())) {
+        return false;
+      }
+      if (useVaultStore.getState().editMode !== "view") {
         exitToViewMode();
       }
 
       const result = await moveEntryToGroup(
-        lastFilePath,
-        kdbx,
+        mutation.lastFilePath,
+        mutation.kdbx,
         entry,
         targetGroup,
       );
@@ -57,7 +56,7 @@ export function useMoveEntryToGroup(): (
         return false;
       }
 
-      incrementVaultVersion();
+      mutation.incrementVaultVersion();
       selectGroup(targetGroup.uuid.id);
       selectEntry(entry.uuid.id);
       toast.success(
@@ -66,12 +65,11 @@ export function useMoveEntryToGroup(): (
       return true;
     },
     [
-      kdbx,
-      lastFilePath,
-      incrementVaultVersion,
+      mutation,
       selectGroup,
       selectEntry,
       exitToViewMode,
+      confirmDiscardIfDirty,
     ],
   );
 }

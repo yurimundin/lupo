@@ -25,15 +25,15 @@ import { getTitle } from "@/lib/entry-helpers";
 import { moveEntryToRecycleBin } from "@/lib/kdbx";
 import { useVaultStore } from "@/stores/vault";
 
+import { useVaultMutationContext } from "./useVaultMutationContext";
+
 export function useDeleteEntry(): (entry: KdbxEntry) => Promise<boolean> {
-  const kdbx = useVaultStore((s) => s.kdbx);
-  const lastFilePath = useVaultStore((s) => s.lastFilePath);
-  const incrementVaultVersion = useVaultStore((s) => s.incrementVaultVersion);
+  const mutation = useVaultMutationContext();
   const selectEntry = useVaultStore((s) => s.selectEntry);
 
   return useCallback(
     async (entry: KdbxEntry): Promise<boolean> => {
-      if (!kdbx || !lastFilePath) {
+      if (!mutation) {
         toast.error("Cofre não está pronto.");
         return false;
       }
@@ -50,13 +50,17 @@ export function useDeleteEntry(): (entry: KdbxEntry) => Promise<boolean> {
 
       if (!confirmed) return false;
 
-      const result = await moveEntryToRecycleBin(lastFilePath, kdbx, entry);
+      const result = await moveEntryToRecycleBin(
+        mutation.lastFilePath,
+        mutation.kdbx,
+        entry,
+      );
       if (!result.ok) {
         toast.error(`Falha ao mover: ${result.error}`);
         return false;
       }
 
-      incrementVaultVersion();
+      mutation.incrementVaultVersion();
       // Limpa seleção: entry saiu do grupo atual (foi pra Lixeira).
       // Quem quiser ver onde está agora seleciona o grupo Lixeira na
       // sidebar.
@@ -64,6 +68,6 @@ export function useDeleteEntry(): (entry: KdbxEntry) => Promise<boolean> {
       toast.success(`Movido para a lixeira (${result.durationMs}ms)`);
       return true;
     },
-    [kdbx, lastFilePath, incrementVaultVersion, selectEntry],
+    [mutation, selectEntry],
   );
 }

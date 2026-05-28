@@ -4,26 +4,25 @@ import { toast } from "sonner";
 
 import { getTitle } from "@/lib/entry-helpers";
 import { setEntryFavoriteInVault } from "@/lib/kdbx";
-import { useVaultStore } from "@/stores/vault";
+
+import { useVaultMutationContext } from "./useVaultMutationContext";
 
 export function useSetEntryFavorite(): (
   entry: KdbxEntry,
   favorite: boolean,
 ) => Promise<boolean> {
-  const kdbx = useVaultStore((s) => s.kdbx);
-  const lastFilePath = useVaultStore((s) => s.lastFilePath);
-  const incrementVaultVersion = useVaultStore((s) => s.incrementVaultVersion);
+  const mutation = useVaultMutationContext();
 
   return useCallback(
     async (entry: KdbxEntry, favorite: boolean): Promise<boolean> => {
-      if (!kdbx || !lastFilePath) {
+      if (!mutation) {
         toast.error("Cofre não está pronto.");
         return false;
       }
 
       const result = await setEntryFavoriteInVault(
-        lastFilePath,
-        kdbx,
+        mutation.lastFilePath,
+        mutation.kdbx,
         entry,
         favorite,
       );
@@ -32,7 +31,7 @@ export function useSetEntryFavorite(): (
         return false;
       }
 
-      incrementVaultVersion();
+      mutation.incrementVaultVersion();
       const title = getTitle(entry) || "(sem título)";
       toast.success(
         favorite
@@ -41,6 +40,6 @@ export function useSetEntryFavorite(): (
       );
       return true;
     },
-    [kdbx, lastFilePath, incrementVaultVersion],
+    [mutation],
   );
 }

@@ -14,7 +14,8 @@ import {
   getEntryAttachmentBytes,
   removeEntryAttachmentInVault,
 } from "@/lib/kdbx";
-import { useVaultStore } from "@/stores/vault";
+
+import { useVaultMutationContext } from "./useVaultMutationContext";
 
 export function useEntryAttachments(): {
   addAttachment: (entry: KdbxEntry) => Promise<boolean>;
@@ -27,13 +28,11 @@ export function useEntryAttachments(): {
     attachmentName: string,
   ) => Promise<boolean>;
 } {
-  const kdbx = useVaultStore((s) => s.kdbx);
-  const lastFilePath = useVaultStore((s) => s.lastFilePath);
-  const incrementVaultVersion = useVaultStore((s) => s.incrementVaultVersion);
+  const mutation = useVaultMutationContext();
 
   const addAttachment = useCallback(
     async (entry: KdbxEntry): Promise<boolean> => {
-      if (!kdbx || !lastFilePath) {
+      if (!mutation) {
         toast.error("Cofre não está pronto.");
         return false;
       }
@@ -49,8 +48,8 @@ export function useEntryAttachments(): {
       try {
         const bytes = await readLocalFileBytes(filePath);
         const result = await addEntryAttachmentInVault(
-          lastFilePath,
-          kdbx,
+          mutation.lastFilePath,
+          mutation.kdbx,
           entry,
           getFileNameFromPath(filePath),
           bytes,
@@ -61,7 +60,7 @@ export function useEntryAttachments(): {
           return false;
         }
 
-        incrementVaultVersion();
+        mutation.incrementVaultVersion();
         toast.success(`Anexo "${result.attachmentName}" adicionado.`);
         return true;
       } catch (e) {
@@ -69,7 +68,7 @@ export function useEntryAttachments(): {
         return false;
       }
     },
-    [kdbx, lastFilePath, incrementVaultVersion],
+    [mutation],
   );
 
   const exportAttachment = useCallback(
@@ -106,7 +105,7 @@ export function useEntryAttachments(): {
       entry: KdbxEntry,
       attachmentName: string,
     ): Promise<boolean> => {
-      if (!kdbx || !lastFilePath) {
+      if (!mutation) {
         toast.error("Cofre não está pronto.");
         return false;
       }
@@ -121,8 +120,8 @@ export function useEntryAttachments(): {
       if (!confirmed) return false;
 
       const result = await removeEntryAttachmentInVault(
-        lastFilePath,
-        kdbx,
+        mutation.lastFilePath,
+        mutation.kdbx,
         entry,
         attachmentName,
       );
@@ -131,11 +130,11 @@ export function useEntryAttachments(): {
         return false;
       }
 
-      incrementVaultVersion();
+      mutation.incrementVaultVersion();
       toast.success(`Anexo "${attachmentName}" removido.`);
       return true;
     },
-    [kdbx, lastFilePath, incrementVaultVersion],
+    [mutation],
   );
 
   return { addAttachment, exportAttachment, removeAttachment };

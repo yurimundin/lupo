@@ -5,12 +5,12 @@ import { toast } from "sonner";
 import { confirmDialog } from "@/lib/confirm";
 import {
   getEntryHistoryItems,
-  restoreEntryHistoryVersionInVault,
+  removeEntryHistoryVersionInVault,
 } from "@/lib/kdbx";
 
 import { useVaultMutationContext } from "./useVaultMutationContext";
 
-export function useRestoreEntryHistory(): (
+export function useRemoveEntryHistory(): (
   entry: KdbxEntry,
   historyIndex: number,
 ) => Promise<boolean> {
@@ -31,29 +31,29 @@ export function useRestoreEntryHistory(): (
         return false;
       }
 
-      const title = historyItem.title || "(sem título)";
       const confirmed = await confirmDialog({
-        title: "Restaurar versão?",
-        description: `A entrada atual será salva no histórico e os campos serão restaurados para "${title}".`,
-        confirmLabel: "Restaurar versão",
+        title: "Apagar versão antiga?",
+        description:
+          "Esta versão será removida permanentemente do histórico da entrada.",
+        confirmLabel: "Apagar versão",
         cancelLabel: "Cancelar",
         variant: "danger",
       });
       if (!confirmed) return false;
 
-      const result = await restoreEntryHistoryVersionInVault(
+      const result = await removeEntryHistoryVersionInVault(
         mutation.lastFilePath,
         mutation.kdbx,
         entry,
         historyIndex,
       );
       if (!result.ok) {
-        toast.error(`Falha ao restaurar histórico: ${result.error}`);
+        toast.error(`Falha ao apagar histórico: ${result.error}`);
         return false;
       }
 
       mutation.incrementVaultVersion();
-      toast.success(`Versão restaurada (${result.durationMs}ms).`);
+      toast.success(`Versão antiga apagada (${result.durationMs}ms).`);
       return true;
     },
     [mutation],

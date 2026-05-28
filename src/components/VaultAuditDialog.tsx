@@ -10,6 +10,7 @@ import {
 import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useDirtyEntryGuard } from "@/hooks/useDirtyEntryGuard";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { confirmDialog } from "@/lib/confirm";
 import {
   auditVaultEntries,
   type AuditAffectedEntry,
@@ -25,11 +25,7 @@ import {
   type AuditSeverity,
 } from "@/lib/vault-audit";
 import { cn } from "@/lib/utils";
-import {
-  getHasUnsavedChanges,
-  useAllEntries,
-  useVaultStore,
-} from "@/stores/vault";
+import { useAllEntries, useVaultStore } from "@/stores/vault";
 
 interface VaultAuditDialogProps {
   open: boolean;
@@ -64,18 +60,10 @@ export function VaultAuditDialog({
   const selectEntry = useVaultStore((s) => s.selectEntry);
   const enterEditMode = useVaultStore((s) => s.enterEditMode);
   const setSearchQuery = useVaultStore((s) => s.setSearchQuery);
-
-  async function confirmDiscardIfDirty(): Promise<boolean> {
-    if (!getHasUnsavedChanges()) return true;
-    return confirmDialog({
-      title: "Mudanças não salvas",
-      description:
-        "Você tem mudanças não salvas. Abrir outra entrada vai descartar essas mudanças. Continuar?",
-      confirmLabel: "Descartar e continuar",
-      cancelLabel: "Voltar e salvar",
-      variant: "danger",
-    });
-  }
+  const confirmDiscardIfDirty = useDirtyEntryGuard({
+    description:
+      "Você tem mudanças não salvas. Abrir outra entrada vai descartar essas mudanças. Continuar?",
+  });
 
   async function openAffectedEntry(
     affectedEntry: AuditAffectedEntry,

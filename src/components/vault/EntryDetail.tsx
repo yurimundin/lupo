@@ -5,23 +5,13 @@
 // - `edit`/`create` → delega ao `EntryEditor`.
 
 import {
-  Copy,
-  Download,
   ExternalLink,
   Eye,
   EyeOff,
-  File,
-  FolderInput,
-  History,
   Inbox,
   KeyRound,
   Link as LinkIcon,
-  Pencil,
-  Plus,
-  Star,
   StickyNote,
-  Trash2,
-  Undo2,
   User,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -30,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { useDeleteEntry } from "@/hooks/useDeleteEntry";
 import { useEntryAttachments } from "@/hooks/useEntryAttachments";
 import { useMoveEntryToGroup } from "@/hooks/useMoveEntryToGroup";
+import { useRemoveEntryHistory } from "@/hooks/useRemoveEntryHistory";
 import { useRestoreEntry } from "@/hooks/useRestoreEntry";
 import { useRestoreEntryHistory } from "@/hooks/useRestoreEntryHistory";
 import { useSetEntryFavorite } from "@/hooks/useSetEntryFavorite";
@@ -45,8 +36,11 @@ import {
   isEntryFavorite,
 } from "@/lib/entry-helpers";
 import { openExternalSafe } from "@/lib/external";
-import { getEntryAttachments, getEntryHistoryItems } from "@/lib/kdbx";
-import { cn } from "@/lib/utils";
+import {
+  getEntryAttachments,
+  getEntryHistoryComparison,
+  getEntryHistoryItems,
+} from "@/lib/kdbx";
 import {
   getGroupDisplayName,
   useCurrentEntry,
@@ -55,7 +49,10 @@ import {
   useVaultStore,
 } from "@/stores/vault";
 
+import { EntryAttachmentsSection } from "./EntryAttachmentsSection";
+import { EntryDetailHeader } from "./EntryDetailHeader";
 import { EntryEditor } from "./EntryEditor";
+import { EntryField } from "./EntryField";
 import { EntryHistoryDialog } from "./EntryHistoryDialog";
 import { MoveEntryDialog } from "./MoveEntryDialog";
 
@@ -72,6 +69,7 @@ export function EntryDetail() {
   const moveEntryToGroup = useMoveEntryToGroup();
   const restoreEntry = useRestoreEntry();
   const restoreEntryHistory = useRestoreEntryHistory();
+  const removeEntryHistory = useRemoveEntryHistory();
   const setEntryFavorite = useSetEntryFavorite();
   const { addAttachment, exportAttachment, removeAttachment } =
     useEntryAttachments();
@@ -110,6 +108,12 @@ export function EntryDetail() {
   void vaultVersion;
   const attachments = entry ? getEntryAttachments(entry) : [];
   const historyItems = entry ? getEntryHistoryItems(entry) : [];
+  const historyItemsWithComparison = entry
+    ? historyItems.map((item) => ({
+        ...item,
+        comparison: getEntryHistoryComparison(entry, item.index),
+      }))
+    : [];
 
   // Atalhos globais do detail (em modo view):
   // - Ctrl+E: entra em edit (entry não-lixeira selecionada).
@@ -220,6 +224,13 @@ export function EntryDetail() {
     return restoreEntryHistory(entry, historyIndex);
   }
 
+  async function handleRemoveHistoryVersion(
+    historyIndex: number,
+  ): Promise<boolean> {
+    if (!entry || inRecycleBin) return false;
+    return removeEntryHistory(entry, historyIndex);
+  }
+
   async function runAttachmentAction(
     actionKey: string,
     action: () => Promise<boolean>,
@@ -267,109 +278,26 @@ export function EntryDetail() {
 
   return (
     <section className="overflow-y-auto p-6 space-y-5">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-semibold tracking-tight truncate">
-            {title}
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Atualizado {updatedLabel}
-            {groupName && (
-              <>
-                <span className="mx-1">·</span>
-                <span>{groupName}</span>
-              </>
-            )}
-          </p>
-        </div>
-        <div className="shrink-0 flex items-center gap-1">
-          {historyItems.length > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setHistoryDialogOpen(true)}
-              title="Ver histórico da entrada"
-            >
-              <History />
-              Histórico
-            </Button>
-          )}
-          {inRecycleBin ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void handleRestore()}
-              disabled={restoring}
-              title="Restaurar entrada para o grupo raiz"
-              aria-label="Restaurar entrada da Lixeira"
-            >
-              <Undo2 />
-              {restoring ? "Restaurando..." : "Restaurar"}
-            </Button>
-          ) : (
-            <>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => void handleToggleFavorite()}
-                disabled={favoriting}
-                title={
-                  favorite
-                    ? "Remover dos favoritos"
-                    : "Adicionar aos favoritos"
-                }
-                aria-label={
-                  favorite
-                    ? "Remover entrada dos favoritos"
-                    : "Adicionar entrada aos favoritos"
-                }
-                className={cn(
-                  favorite && "text-amber-500 hover:text-amber-500",
-                )}
-              >
-                <Star className={cn(favorite && "fill-current")} />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleEdit}
-                title="Editar entrada (Ctrl+E)"
-              >
-                <Pencil />
-                Editar
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setMoveDialogOpen(true)}
-                disabled={!rootGroup}
-                title="Mover para pasta"
-              >
-                <FolderInput />
-                Mover
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleDelete}
-                title="Mover para a lixeira (Delete)"
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 />
-              </Button>
-            </>
-          )}
-        </div>
-      </header>
+      <EntryDetailHeader
+        title={title}
+        updatedLabel={updatedLabel}
+        groupName={groupName}
+        favorite={favorite}
+        favoriting={favoriting}
+        inRecycleBin={inRecycleBin}
+        restoring={restoring}
+        historyCount={historyItems.length}
+        canMove={!!rootGroup}
+        onOpenHistory={() => setHistoryDialogOpen(true)}
+        onRestore={() => void handleRestore()}
+        onToggleFavorite={() => void handleToggleFavorite()}
+        onEdit={handleEdit}
+        onMove={() => setMoveDialogOpen(true)}
+        onDelete={handleDelete}
+      />
 
       {username && (
-        <Field
+        <EntryField
           icon={<User className="size-4 text-muted-foreground" />}
           label="Usuário"
           value={username}
@@ -377,7 +305,7 @@ export function EntryDetail() {
         />
       )}
 
-      <Field
+      <EntryField
         icon={<KeyRound className="size-4 text-muted-foreground" />}
         label="Senha"
         value={
@@ -408,7 +336,7 @@ export function EntryDetail() {
       />
 
       {url && (
-        <Field
+        <EntryField
           icon={<LinkIcon className="size-4 text-muted-foreground" />}
           label="URL"
           value={
@@ -426,7 +354,7 @@ export function EntryDetail() {
       )}
 
       {notes && (
-        <Field
+        <EntryField
           icon={<StickyNote className="size-4 text-muted-foreground" />}
           label="Notas"
           value={
@@ -438,92 +366,14 @@ export function EntryDetail() {
         />
       )}
 
-      <div className="rounded-md border border-border bg-bg-secondary px-3 py-2.5">
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <File className="size-4" />
-            <span className="font-medium">Anexos</span>
-            {attachments.length > 0 && (
-              <span className="text-[11px] text-muted-foreground/80">
-                {attachments.length}
-              </span>
-            )}
-          </div>
-          {!inRecycleBin && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleAddAttachment}
-              disabled={attachmentAction !== null}
-              title="Adicionar anexo"
-            >
-              <Plus />
-              Anexar
-            </Button>
-          )}
-        </div>
-
-        {attachments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Nenhum anexo nesta entrada.
-          </p>
-        ) : (
-          <ul className="space-y-1">
-            {attachments.map((attachment) => {
-              const exportKey = `export:${attachment.name}`;
-              const removeKey = `remove:${attachment.name}`;
-              return (
-                <li
-                  key={attachment.name}
-                  className="flex items-center gap-2 rounded-md border border-border/70 bg-background px-2 py-1.5"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {attachment.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatAttachmentSize(attachment.sizeBytes)}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => handleExportAttachment(attachment.name)}
-                    disabled={attachmentAction !== null}
-                    title="Salvar anexo como..."
-                    aria-label={`Salvar anexo ${attachment.name} como`}
-                  >
-                    <Download />
-                  </Button>
-                  {!inRecycleBin && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => handleRemoveAttachment(attachment.name)}
-                      disabled={attachmentAction !== null}
-                      title="Remover anexo"
-                      aria-label={`Remover anexo ${attachment.name}`}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      {attachmentAction === removeKey ? (
-                        <Trash2 className="opacity-50" />
-                      ) : (
-                        <Trash2 />
-                      )}
-                    </Button>
-                  )}
-                  {attachmentAction === exportKey && (
-                    <span className="sr-only">Salvando anexo</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+      <EntryAttachmentsSection
+        attachments={attachments}
+        inRecycleBin={inRecycleBin}
+        attachmentAction={attachmentAction}
+        onAdd={handleAddAttachment}
+        onExport={handleExportAttachment}
+        onRemove={handleRemoveAttachment}
+      />
 
       {rootGroup && (
         <MoveEntryDialog
@@ -540,61 +390,12 @@ export function EntryDetail() {
         <EntryHistoryDialog
           open={historyDialogOpen}
           onOpenChange={setHistoryDialogOpen}
-          items={historyItems}
+          items={historyItemsWithComparison}
           canRestore={!inRecycleBin}
           onRestore={handleRestoreHistoryVersion}
+          onRemove={handleRemoveHistoryVersion}
         />
       )}
     </section>
   );
-}
-
-interface FieldProps {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-  valueClassName?: string;
-  onCopy?: (() => void) | undefined;
-  extraAction?: React.ReactNode;
-}
-
-function Field({
-  icon,
-  label,
-  value,
-  valueClassName,
-  onCopy,
-  extraAction,
-}: FieldProps) {
-  return (
-    <div className="rounded-md border border-border bg-bg-secondary px-3 py-2.5">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-        {icon}
-        <span className="font-medium">{label}</span>
-      </div>
-      <div className="flex items-start gap-2">
-        <div className={`flex-1 text-sm ${valueClassName ?? ""}`}>{value}</div>
-        <div className="flex items-center gap-0.5 shrink-0">
-          {extraAction}
-          {onCopy && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={onCopy}
-              title="Copiar"
-            >
-              <Copy />
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function formatAttachmentSize(sizeBytes: number | null): string {
-  if (sizeBytes === null) return "Tamanho desconhecido";
-  if (sizeBytes < 1024) return `${sizeBytes} B`;
-  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} KB`;
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }

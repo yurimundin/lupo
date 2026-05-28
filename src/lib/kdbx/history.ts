@@ -1,4 +1,3 @@
-import * as kdbxweb from "kdbxweb";
 import type { Kdbx, KdbxEntry } from "kdbxweb";
 
 import {
@@ -8,6 +7,11 @@ import {
   getUrl,
   getUsername,
 } from "../entry-helpers";
+import {
+  applyEditableFields,
+  copyEditableFields,
+  type EntryEditableFields,
+} from "./entry-fields";
 import { saveVault } from "./persistence";
 import { describeError } from "./shared";
 
@@ -17,13 +21,7 @@ type EntryField = KdbxEntry["fields"] extends Map<string, infer Field>
 type EntryTimes = KdbxEntry["times"];
 type EntryEditState = KdbxEntry["_editState"];
 
-export interface EntryEditableFields {
-  title: string;
-  username: string;
-  password: string;
-  url: string;
-  notes: string;
-}
+export const MAX_ENTRY_HISTORY_ITEMS = 20;
 
 export interface EntryHistoryItem {
   index: number;
@@ -35,11 +33,31 @@ export interface EntryHistoryItem {
   lastModTime: Date | null;
 }
 
+export type EntryHistoryFieldKey =
+  | "title"
+  | "username"
+  | "url"
+  | "notes"
+  | "password";
+
+export interface EntryHistoryComparisonItem {
+  key: EntryHistoryFieldKey;
+  label: string;
+  changed: boolean;
+  secret: boolean;
+  currentValue: string;
+  historyValue: string;
+}
+
 export type UpdateEntryFieldsResult =
   | { ok: true; durationMs: number }
   | { ok: false; error: string };
 
 export type RestoreEntryHistoryResult =
+  | { ok: true; durationMs: number }
+  | { ok: false; error: string };
+
+export type RemoveEntryHistoryResult =
   | { ok: true; durationMs: number }
   | { ok: false; error: string };
 
@@ -69,6 +87,34 @@ export function getEntryHistoryItems(entry: KdbxEntry): EntryHistoryItem[] {
     });
 }
 
+export function getEntryHistoryComparison(
+  entry: KdbxEntry,
+  historyIndex: number,
+): EntryHistoryComparisonItem[] {
+  const historyEntry = entry.history[historyIndex];
+  if (!historyEntry) return [];
+
+  return [
+    textComparison("title", "Título", getTitle(entry), getTitle(historyEntry)),
+    textComparison(
+      "username",
+      "Usuário",
+      getUsername(entry),
+      getUsername(historyEntry),
+    ),
+    textComparison("url", "URL", getUrl(entry), getUrl(historyEntry)),
+    textComparison("notes", "Notas", getNotes(entry), getNotes(historyEntry)),
+    {
+      key: "password",
+      label: "Senha",
+      changed: getPassword(entry) !== getPassword(historyEntry),
+      secret: true,
+      currentValue: "",
+      historyValue: "",
+    },
+  ];
+}
+
 export async function updateEntryFieldsInVault(
   filePath: string,
   kdbx: Kdbx,
@@ -83,6 +129,7 @@ export async function updateEntryFieldsInVault(
 
   try {
     entry.pushHistory();
+    trimEntryHistoryToLimit(entry);
     applyEditableFields(entry, fields);
     entry.times.update();
 
@@ -121,6 +168,7 @@ export async function restoreEntryHistoryVersionInVault(
 
   try {
     entry.pushHistory();
+    trimEntryHistoryToLimit(entry);
     copyEditableFields(entry, historyEntry);
     entry.times.update();
 
@@ -138,6 +186,80 @@ export async function restoreEntryHistoryVersionInVault(
       error: `Erro ao restaurar histórico: ${describeError(e)}`,
     };
   }
+}
+
+export async function removeEntryHistoryVersionInVault(
+  filePath: string,
+  kdbx: Kdbx,
+  entry: KdbxEntry,
+  historyIndex: number,
+): Promise<RemoveEntryHistoryResult> {
+  if (!filePath || !kdbx || !entry) {
+    return { ok: false, error: "Estado inválido para remover histórico." };
+  }
+  if (!entry.history[historyIndex]) {
+    return { ok: false, error: "Versão de histórico não encontrada." };
+  }
+
+  const snapshot = snapshotEntryMutableState(entry);
+
+  try {
+    entry.removeHistory(historyIndex);
+    entry.times.update();
+
+    const result = await saveVault(filePath, kdbx);
+    if (!result.ok) {
+      restoreEntryMutableState(entry, snapshot);
+      return { ok: false, error: result.error };
+    }
+
+    return { ok: true, durationMs: result.durationMs };
+  } catch (e) {
+    restoreEntryMutableState(entry, snapshot);
+    return {
+      ok: false,
+      error: `Erro ao remover histórico: ${describeError(e)}`,
+    };
+  }
+}
+
+function trimEntryHistoryToLimit(entry: KdbxEntry): void {
+  while (entry.history.length > MAX_ENTRY_HISTORY_ITEMS) {
+    entry.removeHistory(findOldestHistoryIndex(entry));
+  }
+}
+
+function findOldestHistoryIndex(entry: KdbxEntry): number {
+  let oldestIndex = 0;
+  let oldestTime = getHistorySortTime(entry.history[0]);
+  for (let index = 1; index < entry.history.length; index += 1) {
+    const time = getHistorySortTime(entry.history[index]);
+    if (time < oldestTime) {
+      oldestTime = time;
+      oldestIndex = index;
+    }
+  }
+  return oldestIndex;
+}
+
+function getHistorySortTime(entry: KdbxEntry): number {
+  return entry.times.lastModTime?.getTime() ?? 0;
+}
+
+function textComparison(
+  key: EntryHistoryFieldKey,
+  label: string,
+  currentValue: string,
+  historyValue: string,
+): EntryHistoryComparisonItem {
+  return {
+    key,
+    label,
+    changed: currentValue !== historyValue,
+    secret: false,
+    currentValue,
+    historyValue,
+  };
 }
 
 function snapshotEntryMutableState(entry: KdbxEntry): EntryMutableSnapshot {
@@ -160,39 +282,6 @@ function restoreEntryMutableState(
   entry.history.splice(0, entry.history.length, ...snapshot.history);
   entry.times = snapshot.times;
   entry._editState = cloneEditState(snapshot.editState);
-}
-
-function applyEditableFields(
-  entry: KdbxEntry,
-  fields: EntryEditableFields,
-): void {
-  entry.fields.set("Title", fields.title);
-  entry.fields.set("UserName", fields.username);
-  entry.fields.set(
-    "Password",
-    kdbxweb.ProtectedValue.fromString(fields.password),
-  );
-  entry.fields.set("URL", fields.url);
-  entry.fields.set("Notes", fields.notes);
-}
-
-function copyEditableFields(target: KdbxEntry, source: KdbxEntry): void {
-  for (const fieldName of ["Title", "UserName", "Password", "URL", "Notes"]) {
-    target.fields.set(fieldName, cloneEntryField(source.fields.get(fieldName)));
-  }
-}
-
-function cloneEntryField(value: EntryField | undefined): EntryField {
-  if (!value) return "";
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "clone" in value &&
-    typeof value.clone === "function"
-  ) {
-    return value.clone() as EntryField;
-  }
-  return value;
 }
 
 function cloneEditState(editState: EntryEditState): EntryEditState {

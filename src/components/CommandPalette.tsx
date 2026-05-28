@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useDirtyEntryGuard } from "@/hooks/useDirtyEntryGuard";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { confirmDialog } from "@/lib/confirm";
 import {
   buildCommandPaletteItems,
   type CommandPaletteActionItem,
@@ -33,7 +33,6 @@ import { openExternalSafe } from "@/lib/external";
 import { requestLockWithGuard } from "@/lib/lock-flow";
 import { cn } from "@/lib/utils";
 import {
-  getHasUnsavedChanges,
   useAllEntries,
   useRecycleBinUuidId,
   useVaultStore,
@@ -53,6 +52,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const enterEditMode = useVaultStore((s) => s.enterEditMode);
   const enterCreateMode = useVaultStore((s) => s.enterCreateMode);
   const setSearchQuery = useVaultStore((s) => s.setSearchQuery);
+  const confirmDiscardIfDirty = useDirtyEntryGuard({
+    description:
+      "Você tem mudanças não salvas. Executar esta ação vai descartar essas mudanças. Continuar?",
+  });
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,18 +82,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   function handleQueryChange(value: string) {
     setQuery(value);
     setActiveIndex(0);
-  }
-
-  async function confirmDiscardIfDirty(): Promise<boolean> {
-    if (!getHasUnsavedChanges()) return true;
-    return confirmDialog({
-      title: "Mudanças não salvas",
-      description:
-        "Você tem mudanças não salvas. Executar esta ação vai descartar essas mudanças. Continuar?",
-      confirmLabel: "Descartar e continuar",
-      cancelLabel: "Voltar e salvar",
-      variant: "danger",
-    });
   }
 
   async function openEntry(item: CommandPaletteEntryItem, edit = false) {

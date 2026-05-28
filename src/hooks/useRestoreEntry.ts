@@ -26,22 +26,22 @@ import { toast } from "sonner";
 import { restoreEntryFromRecycleBin } from "@/lib/kdbx";
 import { useVaultStore } from "@/stores/vault";
 
+import { useVaultMutationContext } from "./useVaultMutationContext";
+
 export function useRestoreEntry(): (entry: KdbxEntry) => Promise<boolean> {
-  const kdbx = useVaultStore((s) => s.kdbx);
-  const lastFilePath = useVaultStore((s) => s.lastFilePath);
-  const incrementVaultVersion = useVaultStore((s) => s.incrementVaultVersion);
+  const mutation = useVaultMutationContext();
   const selectEntry = useVaultStore((s) => s.selectEntry);
 
   return useCallback(
     async (entry: KdbxEntry): Promise<boolean> => {
-      if (!kdbx || !lastFilePath) {
+      if (!mutation) {
         toast.error("Cofre não está pronto.");
         return false;
       }
 
       const result = await restoreEntryFromRecycleBin(
-        lastFilePath,
-        kdbx,
+        mutation.lastFilePath,
+        mutation.kdbx,
         entry,
       );
       if (!result.ok) {
@@ -49,7 +49,7 @@ export function useRestoreEntry(): (entry: KdbxEntry) => Promise<boolean> {
         return false;
       }
 
-      incrementVaultVersion();
+      mutation.incrementVaultVersion();
       // Limpa seleção: entry saiu da Lixeira (lista atual da Lixeira muda).
       // Próxima entry da lista assume foco automaticamente via efeito do
       // EntryList (ou estado vazio se Lixeira ficou sem entries).
@@ -59,6 +59,6 @@ export function useRestoreEntry(): (entry: KdbxEntry) => Promise<boolean> {
       );
       return true;
     },
-    [kdbx, lastFilePath, incrementVaultVersion, selectEntry],
+    [mutation, selectEntry],
   );
 }

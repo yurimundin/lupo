@@ -4,6 +4,7 @@ import {
   SEC_BASIS_ENTRY_FAVORITE_KEY,
   setEntryFavorite,
 } from "../entry-helpers";
+import { applyEditableFields, type EntryEditableFields } from "./entry-fields";
 import { saveVault } from "./persistence";
 import { describeError } from "./shared";
 
@@ -29,6 +30,11 @@ export type SetEntryFavoriteResult =
   | { ok: true; durationMs: number }
   | { ok: false; error: string };
 
+/** Resultado de `createEntryInVault` — entrada criada ou erro. */
+export type CreateEntryResult =
+  | { ok: true; entry: KdbxEntry; durationMs: number }
+  | { ok: false; error: string };
+
 function isGroupInRecycleBinSubtree(
   group: KdbxGroup | undefined,
   recycleBin: KdbxGroup | undefined,
@@ -40,6 +46,46 @@ function isGroupInRecycleBinSubtree(
     current = current.parentGroup;
   }
   return false;
+}
+
+export async function createEntryInVault(
+  filePath: string,
+  kdbx: Kdbx,
+  parent: KdbxGroup,
+  fields: EntryEditableFields,
+): Promise<CreateEntryResult> {
+  if (!filePath || !kdbx || !parent) {
+    return { ok: false, error: "Estado inválido para criar entrada." };
+  }
+
+  let entry: KdbxEntry | null = null;
+  try {
+    entry = kdbx.createEntry(parent);
+    applyEditableFields(entry, fields);
+    entry.times.update();
+
+    const result = await saveVault(filePath, kdbx);
+    if (!result.ok) {
+      rollbackCreatedEntry(parent, entry);
+      return { ok: false, error: result.error };
+    }
+
+    return { ok: true, entry, durationMs: result.durationMs };
+  } catch (e) {
+    if (entry) {
+      rollbackCreatedEntry(parent, entry);
+    }
+    return {
+      ok: false,
+      error: `Erro ao criar entrada: ${describeError(e)}`,
+    };
+  }
+}
+
+function rollbackCreatedEntry(parent: KdbxGroup, entry: KdbxEntry): void {
+  const idx = parent.entries.indexOf(entry);
+  if (idx >= 0) parent.entries.splice(idx, 1);
+  entry.parentGroup = undefined;
 }
 
 export async function setEntryFavoriteInVault(

@@ -5,6 +5,7 @@ import type { KdbxEntry, KdbxGroup } from "kdbxweb";
 import { collectEntriesForSearch } from "@/lib/vault-search";
 import {
   buildGroupTree,
+  isGroupInRecycleBinSubtree,
   type GroupTreeNode,
 } from "@/lib/vault-tree";
 import {
@@ -100,33 +101,6 @@ export function useAllEntries(): KdbxEntry[] {
   }, [kdbx, vaultVersion, recycleBinUuidId]);
 }
 
-/**
- * Hook que retorna a lista de grupos diretos do cofre (filhos do grupo
- * raiz). Não inclui sub-sub-grupos por enquanto — render flat conforme
- * Tarefa 5 da Sessão 3.
- *
- * Mesmo padrão do `useEntriesOfCurrentGroup`: lógica em `useMemo` fora do
- * selector para não criar array novo a cada chamada.
- *
- * MANTIDO POR COMPATIBILIDADE — desde a Sessão 11 a sidebar usa
- * `useGroupTree` (recursivo). Se outro consumidor não aparecer, esta
- * função pode ser removida no futuro.
- */
-export function useTopLevelGroups(): KdbxGroup[] {
-  const kdbx = useVaultStore((s) => s.kdbx);
-  const vaultVersion = useVaultStore((s) => s.vaultVersion);
-  return useMemo(() => {
-    if (!kdbx) return [];
-    const root = kdbx.getDefaultGroup();
-    // Inclui o próprio root como primeiro item — corresponde ao "Cofre" raiz
-    // que o usuário verá. Subgrupos vêm em seguida.
-    return [root, ...root.groups];
-    // vaultVersion é cache-buster intencional (§15): incrementa a cada
-    // mutação in-place do kdbx; força re-execução sem ser referenciado.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kdbx, vaultVersion]);
-}
-
 export function useGroupTree(): GroupTreeNode[] {
   const kdbx = useVaultStore((s) => s.kdbx);
   const vaultVersion = useVaultStore((s) => s.vaultVersion);
@@ -207,7 +181,7 @@ export function useIsEntryInRecycleBin(entry: KdbxEntry | null): boolean {
     if (!entry || !s.kdbx) return false;
     const recycleBinUuid = s.kdbx.meta.recycleBinUuid;
     if (!recycleBinUuid || recycleBinUuid.empty) return false;
-    return isInGroupSubtree(entry, recycleBinUuid.id);
+    return isGroupInRecycleBinSubtree(entry.parentGroup, recycleBinUuid.id);
   });
 }
 
@@ -221,25 +195,10 @@ export function useIsCurrentGroupRecycleBin(): boolean {
     if (!s.kdbx || !s.selectedGroupUuid) return false;
     const recycleBinUuid = s.kdbx.meta.recycleBinUuid;
     if (!recycleBinUuid || recycleBinUuid.empty) return false;
-    if (s.selectedGroupUuid === recycleBinUuid.id) return true;
-    // Sobe a árvore do grupo selecionado verificando se passa pela lixeira.
-    let current = findGroupByUuidId(
+    const group = findGroupByUuidId(
       s.kdbx.getDefaultGroup(),
       s.selectedGroupUuid,
-    )?.parentGroup;
-    while (current) {
-      if (current.uuid.id === recycleBinUuid.id) return true;
-      current = current.parentGroup;
-    }
-    return false;
+    );
+    return isGroupInRecycleBinSubtree(group, recycleBinUuid.id);
   });
-}
-
-function isInGroupSubtree(entry: KdbxEntry, groupUuidId: string): boolean {
-  let current: KdbxGroup | undefined = entry.parentGroup;
-  while (current) {
-    if (current.uuid.id === groupUuidId) return true;
-    current = current.parentGroup;
-  }
-  return false;
 }

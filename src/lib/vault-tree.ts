@@ -43,6 +43,11 @@ export interface MoveEntryTargetOption {
   iconColorId: GroupIconColorId | null;
 }
 
+export interface VisibleGroupTreeNode {
+  node: GroupTreeNode;
+  visible: boolean;
+}
+
 export function buildGroupTreeNode(
   group: KdbxGroup,
   depth: number,
@@ -89,6 +94,30 @@ export function buildGroupTree(
   recycleBinUuidId: string | null,
 ): GroupTreeNode[] {
   return [buildGroupTreeNode(root, 0, null, recycleBinUuidId)];
+}
+
+export function flattenVisibleGroupTree(
+  tree: GroupTreeNode[],
+  expandedPredicate: (uuid: string) => boolean,
+): VisibleGroupTreeNode[] {
+  const out: VisibleGroupTreeNode[] = [];
+
+  function walk(node: GroupTreeNode, parentExpanded: boolean) {
+    const visible = parentExpanded;
+    out.push({ node, visible });
+
+    const isRoot = node.parentUuid === null;
+    const expanded = isRoot || expandedPredicate(node.uuid);
+    for (const child of node.children) {
+      walk(child, parentExpanded && expanded);
+    }
+  }
+
+  for (const root of tree) {
+    walk(root, true);
+  }
+
+  return out.filter((entry) => entry.visible);
 }
 
 export function buildMoveEntryTargetOptions(
@@ -145,4 +174,18 @@ export function getGroupDisplayName(
     return "Lixeira";
   }
   return group.name || "(sem nome)";
+}
+
+export function isGroupInRecycleBinSubtree(
+  group: KdbxGroup | null | undefined,
+  recycleBinUuidId: string | null,
+): boolean {
+  if (!group || !recycleBinUuidId) return false;
+
+  let current: KdbxGroup | undefined = group;
+  while (current) {
+    if (current.uuid.id === recycleBinUuidId) return true;
+    current = current.parentGroup;
+  }
+  return false;
 }

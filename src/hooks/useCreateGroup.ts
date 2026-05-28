@@ -28,33 +28,38 @@ import { toast } from "sonner";
 import { createGroupInVault } from "@/lib/kdbx";
 import { useVaultStore } from "@/stores/vault";
 
+import { useVaultMutationContext } from "./useVaultMutationContext";
+
 export function useCreateGroup(): (
   parent: KdbxGroup,
   name: string,
 ) => Promise<boolean> {
-  const kdbx = useVaultStore((s) => s.kdbx);
-  const lastFilePath = useVaultStore((s) => s.lastFilePath);
-  const incrementVaultVersion = useVaultStore((s) => s.incrementVaultVersion);
+  const mutation = useVaultMutationContext();
   const selectGroup = useVaultStore((s) => s.selectGroup);
 
   return useCallback(
     async (parent: KdbxGroup, name: string): Promise<boolean> => {
-      if (!kdbx || !lastFilePath) {
+      if (!mutation) {
         toast.error("Cofre não está pronto.");
         return false;
       }
 
-      const result = await createGroupInVault(lastFilePath, kdbx, parent, name);
+      const result = await createGroupInVault(
+        mutation.lastFilePath,
+        mutation.kdbx,
+        parent,
+        name,
+      );
       if (!result.ok) {
         toast.error(`Falha ao criar grupo: ${result.error}`);
         return false;
       }
 
-      incrementVaultVersion();
+      mutation.incrementVaultVersion();
       selectGroup(result.group.uuid.id);
       toast.success(`Grupo "${name}" criado (${result.durationMs}ms)`);
       return true;
     },
-    [kdbx, lastFilePath, incrementVaultVersion, selectGroup],
+    [mutation, selectGroup],
   );
 }

@@ -6,8 +6,7 @@
 //   2. Em edição, cria snapshot nativo em `entry.history` antes de alterar.
 //   3. Mutação in-place do `Kdbx`:
 //      - `edit`: localiza entry e delega para `updateEntryFieldsInVault`.
-//      - `create`: cria entry no `draftEntry.groupUuid`, popula fields.
-//      Senha entra como `ProtectedValue.fromString` (não string clara).
+//      - `create`: delega criação/fields/rollback para `createEntryInVault`.
 //   4. `saveVault(filePath, kdbx)` — backup atômico + magic check + rename.
 //   5. Em sucesso: `incrementVaultVersion`, seleciona a entry,
 //      `exitToViewMode`, toast verde.
@@ -16,11 +15,10 @@
 //
 // Retorno: `Promise<boolean>` — `true` se salvou, `false` em qualquer falha.
 
-import * as kdbxweb from "kdbxweb";
 import { useCallback } from "react";
 import { toast } from "sonner";
 
-import { saveVault, updateEntryFieldsInVault } from "@/lib/kdbx";
+import { createEntryInVault, updateEntryFieldsInVault } from "@/lib/kdbx";
 import {
   findEntryByUuidIdInDb,
   findGroupByUuidIdInDb,
@@ -87,26 +85,19 @@ export function useCommitEdit(): () => Promise<boolean> {
           toast.error("Grupo de destino não encontrado.");
           return false;
         }
-        const entry = kdbx.createEntry(group);
-        entry.fields.set("Title", draftEntry.title);
-        entry.fields.set("UserName", draftEntry.username);
-        entry.fields.set(
-          "Password",
-          kdbxweb.ProtectedValue.fromString(draftEntry.password),
-        );
-        entry.fields.set("URL", draftEntry.url);
-        entry.fields.set("Notes", draftEntry.notes);
-
-        const result = await saveVault(lastFilePath, kdbx);
+        const result = await createEntryInVault(lastFilePath, kdbx, group, {
+          title: draftEntry.title,
+          username: draftEntry.username,
+          password: draftEntry.password,
+          url: draftEntry.url,
+          notes: draftEntry.notes,
+        });
         if (!result.ok) {
-          // Rollback: remover a entry recém-criada do grupo.
-          const idx = group.entries.indexOf(entry);
-          if (idx >= 0) group.entries.splice(idx, 1);
           toast.error(`Falha ao salvar: ${result.error}`);
           return false;
         }
 
-        entryUuid = entry.uuid.id;
+        entryUuid = result.entry.uuid.id;
         incrementVaultVersion();
         toast.success(`Salvo (${result.durationMs}ms)`);
       } else {

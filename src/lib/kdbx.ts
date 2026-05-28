@@ -3,6 +3,7 @@
 
 export * from "./kdbx/core";
 export * from "./kdbx/persistence";
+export * from "./kdbx/entry-fields";
 export * from "./kdbx/entries";
 export * from "./kdbx/groups";
 export * from "./kdbx/group-visuals";
