@@ -12,6 +12,7 @@ import {
   EyeOff,
   File,
   FolderInput,
+  History,
   Inbox,
   KeyRound,
   Link as LinkIcon,
@@ -30,6 +31,7 @@ import { useDeleteEntry } from "@/hooks/useDeleteEntry";
 import { useEntryAttachments } from "@/hooks/useEntryAttachments";
 import { useMoveEntryToGroup } from "@/hooks/useMoveEntryToGroup";
 import { useRestoreEntry } from "@/hooks/useRestoreEntry";
+import { useRestoreEntryHistory } from "@/hooks/useRestoreEntryHistory";
 import { useSetEntryFavorite } from "@/hooks/useSetEntryFavorite";
 import { copyToClipboardWithAutoClear } from "@/lib/clipboard";
 import {
@@ -43,7 +45,7 @@ import {
   isEntryFavorite,
 } from "@/lib/entry-helpers";
 import { openExternalSafe } from "@/lib/external";
-import { getEntryAttachments } from "@/lib/kdbx";
+import { getEntryAttachments, getEntryHistoryItems } from "@/lib/kdbx";
 import { cn } from "@/lib/utils";
 import {
   getGroupDisplayName,
@@ -54,6 +56,7 @@ import {
 } from "@/stores/vault";
 
 import { EntryEditor } from "./EntryEditor";
+import { EntryHistoryDialog } from "./EntryHistoryDialog";
 import { MoveEntryDialog } from "./MoveEntryDialog";
 
 const SHOW_PASSWORD_AUTO_HIDE_MS = 10_000;
@@ -68,6 +71,7 @@ export function EntryDetail() {
   const deleteEntry = useDeleteEntry();
   const moveEntryToGroup = useMoveEntryToGroup();
   const restoreEntry = useRestoreEntry();
+  const restoreEntryHistory = useRestoreEntryHistory();
   const setEntryFavorite = useSetEntryFavorite();
   const { addAttachment, exportAttachment, removeAttachment } =
     useEntryAttachments();
@@ -77,6 +81,7 @@ export function EntryDetail() {
   const [restoring, setRestoring] = useState(false);
   const [favoriting, setFavoriting] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [attachmentAction, setAttachmentAction] = useState<string | null>(null);
 
   // Auto-oculta a senha após 10s sempre que ela é mostrada.
@@ -104,6 +109,7 @@ export function EntryDetail() {
   // Assina vaultVersion para re-renderizar quando anexos mudam in-place.
   void vaultVersion;
   const attachments = entry ? getEntryAttachments(entry) : [];
+  const historyItems = entry ? getEntryHistoryItems(entry) : [];
 
   // Atalhos globais do detail (em modo view):
   // - Ctrl+E: entra em edit (entry não-lixeira selecionada).
@@ -207,6 +213,13 @@ export function EntryDetail() {
     return moveEntryToGroup(entry, targetGroup);
   }
 
+  async function handleRestoreHistoryVersion(
+    historyIndex: number,
+  ): Promise<boolean> {
+    if (!entry || inRecycleBin) return false;
+    return restoreEntryHistory(entry, historyIndex);
+  }
+
   async function runAttachmentAction(
     actionKey: string,
     action: () => Promise<boolean>,
@@ -270,6 +283,18 @@ export function EntryDetail() {
           </p>
         </div>
         <div className="shrink-0 flex items-center gap-1">
+          {historyItems.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setHistoryDialogOpen(true)}
+              title="Ver histórico da entrada"
+            >
+              <History />
+              Histórico
+            </Button>
+          )}
           {inRecycleBin ? (
             <Button
               type="button"
@@ -508,6 +533,16 @@ export function EntryDetail() {
           rootGroup={rootGroup}
           recycleBinUuidId={recycleBinUuidId}
           onConfirm={handleConfirmMove}
+        />
+      )}
+
+      {historyItems.length > 0 && (
+        <EntryHistoryDialog
+          open={historyDialogOpen}
+          onOpenChange={setHistoryDialogOpen}
+          items={historyItems}
+          canRestore={!inRecycleBin}
+          onRestore={handleRestoreHistoryVersion}
         />
       )}
     </section>

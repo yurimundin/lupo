@@ -7,3 +7,4 @@ export * from "./kdbx/entries";
 export * from "./kdbx/groups";
 export * from "./kdbx/group-visuals";
 export * from "./kdbx/attachments";
+export * from "./kdbx/history";

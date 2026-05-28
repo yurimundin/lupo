@@ -3,9 +3,9 @@
 //
 // Fluxo:
 //   1. Validações (cofre aberto, draft válido, título não-vazio).
-//   2. Snapshot dos campos atuais (pra rollback se save falhar).
+//   2. Em edição, cria snapshot nativo em `entry.history` antes de alterar.
 //   3. Mutação in-place do `Kdbx`:
-//      - `edit`: localiza entry pelo `selectedEntryUuid`, sobrescreve fields.
+//      - `edit`: localiza entry e delega para `updateEntryFieldsInVault`.
 //      - `create`: cria entry no `draftEntry.groupUuid`, popula fields.
 //      Senha entra como `ProtectedValue.fromString` (não string clara).
 //   4. `saveVault(filePath, kdbx)` — backup atômico + magic check + rename.
@@ -20,7 +20,7 @@ import * as kdbxweb from "kdbxweb";
 import { useCallback } from "react";
 import { toast } from "sonner";
 
-import { saveVault } from "@/lib/kdbx";
+import { saveVault, updateEntryFieldsInVault } from "@/lib/kdbx";
 import {
   findEntryByUuidIdInDb,
   findGroupByUuidIdInDb,
@@ -61,25 +61,19 @@ export function useCommitEdit(): () => Promise<boolean> {
           return false;
         }
 
-        // Snapshot pra rollback (Map preserva referências dos
-        // ProtectedValue originais).
-        const fieldsSnapshot = new Map(entry.fields);
-
-        entry.fields.set("Title", draftEntry.title);
-        entry.fields.set("UserName", draftEntry.username);
-        entry.fields.set(
-          "Password",
-          kdbxweb.ProtectedValue.fromString(draftEntry.password),
+        const result = await updateEntryFieldsInVault(
+          lastFilePath,
+          kdbx,
+          entry,
+          {
+            title: draftEntry.title,
+            username: draftEntry.username,
+            password: draftEntry.password,
+            url: draftEntry.url,
+            notes: draftEntry.notes,
+          },
         );
-        entry.fields.set("URL", draftEntry.url);
-        entry.fields.set("Notes", draftEntry.notes);
-        entry.times.update();
-
-        const result = await saveVault(lastFilePath, kdbx);
         if (!result.ok) {
-          // Rollback: restaurar campos antigos.
-          entry.fields.clear();
-          for (const [k, v] of fieldsSnapshot) entry.fields.set(k, v);
           toast.error(`Falha ao salvar: ${result.error}`);
           return false;
         }

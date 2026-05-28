@@ -13,6 +13,20 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 vi.mock("kdbxweb", () => {
+  class ProtectedValue {
+    constructor(private value: string) {}
+
+    static fromString = vi.fn((value: string) => new ProtectedValue(value));
+
+    getText(): string {
+      return this.value;
+    }
+
+    clone(): ProtectedValue {
+      return new ProtectedValue(this.value);
+    }
+  }
+
   class Credentials {
     ready = Promise.resolve();
 
@@ -28,9 +42,7 @@ vi.mock("kdbxweb", () => {
     CryptoEngine: {
       setArgon2Impl: vi.fn(),
     },
-    ProtectedValue: {
-      fromString: vi.fn((value: string) => ({ protected: value })),
-    },
+    ProtectedValue,
     Credentials,
     Kdbx: {
       create: vi.fn(() => ({
@@ -65,13 +77,16 @@ import {
   createVault,
   emptyRecycleBin,
   getEntryAttachments,
+  getEntryHistoryItems,
   moveEntryToGroup,
   moveEntryToRecycleBin,
   removeEntryAttachmentInVault,
   restoreEntryFromRecycleBin,
+  restoreEntryHistoryVersionInVault,
   saveVault,
   setEntryFavoriteInVault,
   setGroupVisualIconInVault,
+  updateEntryFieldsInVault,
 } from "./kdbx";
 
 interface FakeUuid {
@@ -82,9 +97,18 @@ interface FakeUuid {
 interface FakeEntry {
   uuid: FakeUuid;
   parentGroup?: FakeGroup;
+  fields: Map<string, unknown>;
   binaries: Map<string, { hash: string; value: ArrayBuffer }>;
+  history: FakeEntry[];
   customData?: Map<string, { value: string; lastModified?: Date }>;
-  times: { update: () => void };
+  times: FakeTimes;
+  pushHistory: ReturnType<typeof vi.fn>;
+}
+
+interface FakeTimes {
+  lastModTime: Date | null;
+  update: ReturnType<typeof vi.fn>;
+  clone: () => FakeTimes;
 }
 
 interface FakeGroup {
@@ -108,8 +132,43 @@ interface FakeDb {
   move: (item: FakeEntry | FakeGroup, toGroup?: FakeGroup) => void;
 }
 
+function times(lastModTime: Date | null = null): FakeTimes {
+  const state: FakeTimes = {
+    lastModTime,
+    update: vi.fn(() => {
+      state.lastModTime = new Date("2026-05-28T12:00:00Z");
+    }),
+    clone: () => times(state.lastModTime ? new Date(state.lastModTime) : null),
+  };
+  return state;
+}
+
 function entry(id: string): FakeEntry {
-  return { uuid: { id }, binaries: new Map(), times: { update: vi.fn() } };
+  const item: FakeEntry = {
+    uuid: { id },
+    fields: new Map(),
+    binaries: new Map(),
+    history: [],
+    times: times(),
+    pushHistory: vi.fn(),
+  };
+  item.pushHistory.mockImplementation(() => {
+    item.history.push(cloneEntry(item));
+  });
+  return item;
+}
+
+function cloneEntry(source: FakeEntry): FakeEntry {
+  const item = entry(source.uuid.id);
+  item.parentGroup = source.parentGroup;
+  item.fields = new Map(source.fields);
+  item.binaries = new Map(source.binaries);
+  item.history = [...source.history];
+  item.customData = source.customData
+    ? new Map(source.customData)
+    : undefined;
+  item.times = source.times.clone();
+  return item;
 }
 
 function group(id: string, name: string): FakeGroup {
@@ -130,6 +189,23 @@ function attachEntry(parent: FakeGroup, item: FakeEntry): void {
 function attachGroup(parent: FakeGroup, child: FakeGroup): void {
   child.parentGroup = parent;
   parent.groups.push(child);
+}
+
+function setEntryFields(
+  item: FakeEntry,
+  fields: {
+    title?: string;
+    username?: string;
+    password?: unknown;
+    url?: string;
+    notes?: string;
+  },
+): void {
+  item.fields.set("Title", fields.title ?? "");
+  item.fields.set("UserName", fields.username ?? "");
+  item.fields.set("Password", fields.password ?? "");
+  item.fields.set("URL", fields.url ?? "");
+  item.fields.set("Notes", fields.notes ?? "");
 }
 
 function makeDb(): { db: FakeDb; root: FakeGroup; recycleBin: FakeGroup } {
@@ -407,6 +483,194 @@ describe("kdbx helpers", () => {
 
     expect(result).toEqual({ ok: false, error: "save falhou" });
     expect(item.customData.get("sec.basis.entryFavorite")?.value).toBe("true");
+  });
+
+  it("updates entry fields while pushing the previous version into history", async () => {
+    const { db, root } = makeDb();
+    const item = entry("entry");
+    item.times = times(new Date("2026-01-01T10:00:00Z"));
+    setEntryFields(item, {
+      title: "GitHub antigo",
+      username: "old-user",
+      password: "old-password",
+      url: "https://old.example",
+      notes: "old notes",
+    });
+    attachEntry(root, item);
+
+    const result = await updateEntryFieldsInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      {
+        title: "GitHub novo",
+        username: "new-user",
+        password: "new-password",
+        url: "https://new.example",
+        notes: "new notes",
+      },
+    );
+
+    expect(result).toEqual({ ok: true, durationMs: 12 });
+    expect(item.pushHistory).toHaveBeenCalledOnce();
+    expect(item.history).toHaveLength(1);
+    expect(item.history[0].fields.get("Title")).toBe("GitHub antigo");
+    expect(item.fields.get("Title")).toBe("GitHub novo");
+    expect(item.fields.get("UserName")).toBe("new-user");
+    expect(item.fields.get("URL")).toBe("https://new.example");
+    expect(item.fields.get("Notes")).toBe("new notes");
+    expect(item.times.update).toHaveBeenCalled();
+  });
+
+  it("rolls fields and history back when saving an edited entry fails", async () => {
+    const { db, root } = makeDb();
+    const item = entry("entry");
+    setEntryFields(item, {
+      title: "GitHub antigo",
+      username: "old-user",
+      password: "old-password",
+      url: "https://old.example",
+      notes: "old notes",
+    });
+    attachEntry(root, item);
+    invokeMock.mockRejectedValue("save falhou");
+
+    const result = await updateEntryFieldsInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      {
+        title: "GitHub novo",
+        username: "new-user",
+        password: "new-password",
+        url: "https://new.example",
+        notes: "new notes",
+      },
+    );
+
+    expect(result).toEqual({ ok: false, error: "save falhou" });
+    expect(item.history).toHaveLength(0);
+    expect(item.fields.get("Title")).toBe("GitHub antigo");
+    expect(item.fields.get("UserName")).toBe("old-user");
+    expect(item.fields.get("URL")).toBe("https://old.example");
+    expect(item.fields.get("Notes")).toBe("old notes");
+  });
+
+  it("lists entry history from newest to oldest while preserving source indices", () => {
+    const item = entry("entry");
+    const old = entry("old");
+    old.times = times(new Date("2025-01-01T10:00:00Z"));
+    setEntryFields(old, {
+      title: "Versão antiga",
+      username: "old-user",
+      url: "https://old.example",
+      notes: "old notes",
+    });
+    const recent = entry("recent");
+    recent.times = times(new Date("2025-03-01T10:00:00Z"));
+    setEntryFields(recent, {
+      title: "Versão recente",
+      username: "recent-user",
+      url: "https://recent.example",
+      notes: "recent notes",
+    });
+    item.history.push(old, recent);
+
+    expect(getEntryHistoryItems(asEntry(item))).toEqual([
+      {
+        index: 1,
+        title: "Versão recente",
+        username: "recent-user",
+        password: "",
+        url: "https://recent.example",
+        notes: "recent notes",
+        lastModTime: new Date("2025-03-01T10:00:00Z"),
+      },
+      {
+        index: 0,
+        title: "Versão antiga",
+        username: "old-user",
+        password: "",
+        url: "https://old.example",
+        notes: "old notes",
+        lastModTime: new Date("2025-01-01T10:00:00Z"),
+      },
+    ]);
+  });
+
+  it("restores a history version and keeps the current state in history", async () => {
+    const { db, root } = makeDb();
+    const item = entry("entry");
+    setEntryFields(item, {
+      title: "Atual",
+      username: "current-user",
+      password: "current-password",
+      url: "https://current.example",
+      notes: "current notes",
+    });
+    const previous = entry("previous");
+    setEntryFields(previous, {
+      title: "Anterior",
+      username: "old-user",
+      password: "old-password",
+      url: "https://old.example",
+      notes: "old notes",
+    });
+    item.history.push(previous);
+    attachEntry(root, item);
+
+    const result = await restoreEntryHistoryVersionInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      0,
+    );
+
+    expect(result).toEqual({ ok: true, durationMs: 12 });
+    expect(item.pushHistory).toHaveBeenCalledOnce();
+    expect(item.history).toHaveLength(2);
+    expect(item.history[1].fields.get("Title")).toBe("Atual");
+    expect(item.fields.get("Title")).toBe("Anterior");
+    expect(item.fields.get("UserName")).toBe("old-user");
+    expect(item.fields.get("URL")).toBe("https://old.example");
+    expect(item.fields.get("Notes")).toBe("old notes");
+  });
+
+  it("rolls a history restore back when saving fails", async () => {
+    const { db, root } = makeDb();
+    const item = entry("entry");
+    setEntryFields(item, {
+      title: "Atual",
+      username: "current-user",
+      password: "current-password",
+      url: "https://current.example",
+      notes: "current notes",
+    });
+    const previous = entry("previous");
+    setEntryFields(previous, {
+      title: "Anterior",
+      username: "old-user",
+      password: "old-password",
+      url: "https://old.example",
+      notes: "old notes",
+    });
+    item.history.push(previous);
+    attachEntry(root, item);
+    invokeMock.mockRejectedValue("save falhou");
+
+    const result = await restoreEntryHistoryVersionInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      0,
+    );
+
+    expect(result).toEqual({ ok: false, error: "save falhou" });
+    expect(item.history).toEqual([previous]);
+    expect(item.fields.get("Title")).toBe("Atual");
+    expect(item.fields.get("UserName")).toBe("current-user");
+    expect(item.fields.get("URL")).toBe("https://current.example");
+    expect(item.fields.get("Notes")).toBe("current notes");
   });
 
   it("adds an entry attachment as a KDBX binary and persists the vault", async () => {

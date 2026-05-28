@@ -31,6 +31,8 @@ O **Sec.Basis** preenche essa lacuna com:
   reutilizadas, antigas, duplicidades e metadados ausentes.
 - **Anexos compatíveis com KeePass** — arquivos podem ser anexados a entradas
   e continuam gravados dentro do próprio `.kdbx`.
+- **Histórico amigável de entradas** — edições criam versões anteriores no
+  histórico KDBX, com visualização e restauração guiada.
 - **Recuperação guiada** — se uma gravação for interrompida, o app detecta
   arquivos `.tmp`/`.bak` e oferece restauração conservadora.
 
@@ -135,13 +137,14 @@ Princípios de design que guiam o projeto:
   - ✅ Busca em tempo real (substring case-insensitive em Title/UserName/URL/Notes, cross-group excluindo Lixeira, atalho Ctrl+F)
   - ✅ Command palette (`Ctrl+K`) para buscar entradas e executar ações rápidas
   - ✅ Anexos em entradas KDBX, com adicionar, salvar como e remover
+  - ✅ Histórico de alterações de entradas, com copiar senha antiga e restaurar versão
   - ✅ Empacotamento Windows manual (instaladores `.msi` e `.exe` via Tauri)
   - ✅ Suíte unitária inicial (Vitest + CI)
   - ✅ Motor offline de força/auditoria de senhas
   - ✅ UI de auditoria do cofre no header, com resumo por severidade, recomendações e ações guiadas
   - ✅ Recuperação guiada para `.tmp`/`.bak` após crash ou gravação interrompida
 
-- **Fase 2:** YubiKey, TOTP e histórico amigável de alterações das entradas.
+- **Fase 2:** YubiKey, TOTP e melhorias avançadas de histórico/auditoria.
 
 - **Fase 3:** Extensão de browser para auto-fill, aplicativo Android e painel
   de saúde do cofre (LGPD-friendly).
