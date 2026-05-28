@@ -9,10 +9,12 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  FolderInput,
   Inbox,
   KeyRound,
   Link as LinkIcon,
   Pencil,
+  Star,
   StickyNote,
   Trash2,
   Undo2,
@@ -22,7 +24,9 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useDeleteEntry } from "@/hooks/useDeleteEntry";
+import { useMoveEntryToGroup } from "@/hooks/useMoveEntryToGroup";
 import { useRestoreEntry } from "@/hooks/useRestoreEntry";
+import { useSetEntryFavorite } from "@/hooks/useSetEntryFavorite";
 import { copyToClipboardWithAutoClear } from "@/lib/clipboard";
 import {
   formatRelative,
@@ -32,8 +36,10 @@ import {
   getTitle,
   getUrl,
   getUsername,
+  isEntryFavorite,
 } from "@/lib/entry-helpers";
 import { openExternalSafe } from "@/lib/external";
+import { cn } from "@/lib/utils";
 import {
   getGroupDisplayName,
   useCurrentEntry,
@@ -43,6 +49,7 @@ import {
 } from "@/stores/vault";
 
 import { EntryEditor } from "./EntryEditor";
+import { MoveEntryDialog } from "./MoveEntryDialog";
 
 const SHOW_PASSWORD_AUTO_HIDE_MS = 10_000;
 
@@ -52,11 +59,16 @@ export function EntryDetail() {
   const enterEditMode = useVaultStore((s) => s.enterEditMode);
   const inRecycleBin = useIsEntryInRecycleBin(entry);
   const recycleBinUuidId = useRecycleBinUuidId();
+  const kdbx = useVaultStore((s) => s.kdbx);
   const deleteEntry = useDeleteEntry();
+  const moveEntryToGroup = useMoveEntryToGroup();
   const restoreEntry = useRestoreEntry();
+  const setEntryFavorite = useSetEntryFavorite();
 
   const [showPassword, setShowPassword] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [favoriting, setFavoriting] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
 
   // Auto-oculta a senha após 10s sempre que ela é mostrada.
   useEffect(() => {
@@ -148,6 +160,8 @@ export function EntryDetail() {
     ? getGroupDisplayName(entry.parentGroup, recycleBinUuidId)
     : "";
   const updatedLabel = formatRelative(getLastModTime(entry));
+  const rootGroup = kdbx?.getDefaultGroup() ?? null;
+  const favorite = isEntryFavorite(entry);
 
   async function handleOpenUrl() {
     if (!url) return;
@@ -162,6 +176,23 @@ export function EntryDetail() {
   function handleDelete() {
     if (!entry || inRecycleBin) return;
     void deleteEntry(entry);
+  }
+
+  async function handleToggleFavorite() {
+    if (!entry || inRecycleBin || favoriting) return;
+    setFavoriting(true);
+    try {
+      await setEntryFavorite(entry, !favorite);
+    } finally {
+      setFavoriting(false);
+    }
+  }
+
+  async function handleConfirmMove(targetGroup: Parameters<
+    typeof moveEntryToGroup
+  >[1]): Promise<boolean> {
+    if (!entry) return false;
+    return moveEntryToGroup(entry, targetGroup);
   }
 
   // Restaurar entry da Lixeira para o grupo raiz. Sem confirmDialog
@@ -212,6 +243,28 @@ export function EntryDetail() {
             <>
               <Button
                 type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => void handleToggleFavorite()}
+                disabled={favoriting}
+                title={
+                  favorite
+                    ? "Remover dos favoritos"
+                    : "Adicionar aos favoritos"
+                }
+                aria-label={
+                  favorite
+                    ? "Remover entrada dos favoritos"
+                    : "Adicionar entrada aos favoritos"
+                }
+                className={cn(
+                  favorite && "text-amber-500 hover:text-amber-500",
+                )}
+              >
+                <Star className={cn(favorite && "fill-current")} />
+              </Button>
+              <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleEdit}
@@ -219,6 +272,17 @@ export function EntryDetail() {
               >
                 <Pencil />
                 Editar
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setMoveDialogOpen(true)}
+                disabled={!rootGroup}
+                title="Mover para pasta"
+              >
+                <FolderInput />
+                Mover
               </Button>
               <Button
                 type="button"
@@ -302,6 +366,17 @@ export function EntryDetail() {
             </pre>
           }
           onCopy={() => copyToClipboardWithAutoClear(notes, "Notas copiadas")}
+        />
+      )}
+
+      {rootGroup && (
+        <MoveEntryDialog
+          open={moveDialogOpen}
+          onOpenChange={setMoveDialogOpen}
+          entry={entry}
+          rootGroup={rootGroup}
+          recycleBinUuidId={recycleBinUuidId}
+          onConfirm={handleConfirmMove}
         />
       )}
     </section>

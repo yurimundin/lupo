@@ -32,10 +32,19 @@ export interface AuditEntrySnapshot {
   source: KdbxEntry;
 }
 
+export interface AuditAffectedEntry {
+  id: string;
+  title: string;
+  username: string;
+  url: string;
+  source: KdbxEntry;
+}
+
 export interface AuditFinding {
   type: AuditFindingType;
   severity: AuditSeverity;
   entryIds: string[];
+  affectedEntries: AuditAffectedEntry[];
   title: string;
   description: string;
   recommendation: string;
@@ -94,6 +103,7 @@ function auditSingleEntry(
       type: "missing-password",
       severity: "high",
       entryIds: [entry.id],
+      affectedEntries: [toAffectedEntry(entry)],
       title: `${entryLabel(entry)} sem senha`,
       description: "A entrada não possui senha armazenada.",
       recommendation: "Defina uma senha forte ou remova a entrada se ela não for mais usada.",
@@ -109,6 +119,7 @@ function auditSingleEntry(
         type: "weak-password",
         severity: strength.level === 0 ? "high" : "medium",
         entryIds: [entry.id],
+        affectedEntries: [toAffectedEntry(entry)],
         title: `${entryLabel(entry)} usa senha ${strength.label.toLowerCase()}`,
         description:
           strength.warnings.join(" ") || "A senha não atende aos critérios mínimos.",
@@ -124,6 +135,7 @@ function auditSingleEntry(
       type: "missing-url",
       severity: "low",
       entryIds: [entry.id],
+      affectedEntries: [toAffectedEntry(entry)],
       title: `${entryLabel(entry)} sem URL`,
       description: "A entrada não possui URL associada.",
       recommendation: "Adicione a URL do serviço para facilitar busca e auditoria.",
@@ -135,6 +147,7 @@ function auditSingleEntry(
       type: "missing-username",
       severity: "low",
       entryIds: [entry.id],
+      affectedEntries: [toAffectedEntry(entry)],
       title: `${entryLabel(entry)} sem usuário`,
       description: "A entrada não possui usuário/login preenchido.",
       recommendation: "Preencha o usuário quando o serviço exigir login.",
@@ -146,6 +159,7 @@ function auditSingleEntry(
       type: "old-entry",
       severity: "low",
       entryIds: [entry.id],
+      affectedEntries: [toAffectedEntry(entry)],
       title: `${entryLabel(entry)} não é atualizada há muito tempo`,
       description: `A entrada não é modificada há pelo menos ${oldEntryDays} dias.`,
       recommendation: "Revise se a senha ainda é atual e única.",
@@ -169,6 +183,7 @@ function auditReusedPasswords(entries: AuditEntrySnapshot[]): AuditFinding[] {
       type: "reused-password" as const,
       severity: "high" as const,
       entryIds: group.map((entry) => entry.id),
+      affectedEntries: group.map(toAffectedEntry),
       title: "Senha reutilizada",
       description: `A mesma senha aparece em ${group.length} entradas: ${group
         .map(entryLabel)
@@ -191,6 +206,7 @@ function auditDuplicateUrls(entries: AuditEntrySnapshot[]): AuditFinding[] {
       type: "duplicate-url" as const,
       severity: "medium" as const,
       entryIds: group.map((entry) => entry.id),
+      affectedEntries: group.map(toAffectedEntry),
       title: "URL duplicada",
       description: `A mesma URL aparece em ${group.length} entradas: ${group
         .map(entryLabel)
@@ -208,6 +224,16 @@ function toSnapshot(entry: KdbxEntry): AuditEntrySnapshot {
     password: getPassword(entry),
     lastModTime: getLastModTime(entry),
     source: entry,
+  };
+}
+
+function toAffectedEntry(entry: AuditEntrySnapshot): AuditAffectedEntry {
+  return {
+    id: entry.id,
+    title: entry.title,
+    username: entry.username,
+    url: entry.url,
+    source: entry.source,
   };
 }
 

@@ -6,8 +6,8 @@
 // (username || URL || ""). Setas ↑/↓ navegam quando algum item está
 // focado.
 
-import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Star, Trash2 } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useEmptyRecycleBin } from "@/hooks/useEmptyRecycleBin";
@@ -21,6 +21,7 @@ import {
   getUrl,
   getUsername,
   highlightMatch,
+  isEntryFavorite,
   matchesSearch,
 } from "@/lib/entry-helpers";
 import { cn } from "@/lib/utils";
@@ -76,6 +77,21 @@ export function EntryList() {
     );
   }, [filteredEntries]);
 
+  const favoriteEntries = useMemo(
+    () => sorted.filter((entry) => isEntryFavorite(entry)),
+    [sorted],
+  );
+  const otherEntries = useMemo(
+    () => sorted.filter((entry) => !isEntryFavorite(entry)),
+    [sorted],
+  );
+  const orderedEntries = useMemo(
+    () =>
+      favoriteEntries.length > 0
+        ? [...favoriteEntries, ...otherEntries]
+        : sorted,
+    [favoriteEntries, otherEntries, sorted],
+  );
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -119,9 +135,9 @@ export function EntryList() {
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
     const nextIdx =
       e.key === "ArrowDown" ? idx + 1 : e.key === "ArrowUp" ? idx - 1 : -1;
-    if (nextIdx < 0 || nextIdx >= sorted.length) return;
+    if (nextIdx < 0 || nextIdx >= orderedEntries.length) return;
     e.preventDefault();
-    const targetUuid = sorted[nextIdx].uuid.id;
+    const targetUuid = orderedEntries[nextIdx].uuid.id;
     const ok = await confirmDiscardIfDirty(
       "Você tem mudanças não salvas. Mudar de entrada vai descartar essas mudanças. Continuar?",
     );
@@ -263,15 +279,32 @@ export function EntryList() {
         )
       ) : (
         <ul className="flex-1 overflow-y-auto divide-y divide-border">
-          {sorted.map((entry, idx) => {
+          {orderedEntries.map((entry, idx) => {
             const title = getTitle(entry) || "(sem título)";
             const username = getUsername(entry);
             const url = getUrl(entry);
             const subtitle = username || url || "";
             const selected = entry.uuid.id === selectedEntryUuid;
             const draggable = canDragEntry(entry);
+            const favorite = isEntryFavorite(entry);
+            const showFavoritesHeader = favoriteEntries.length > 0 && idx === 0;
+            const showOthersHeader =
+              favoriteEntries.length > 0 &&
+              otherEntries.length > 0 &&
+              idx === favoriteEntries.length;
             return (
-              <li key={entry.uuid.id}>
+              <Fragment key={entry.uuid.id}>
+                {showFavoritesHeader && (
+                  <li className="bg-bg-secondary px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Favoritos
+                  </li>
+                )}
+                {showOthersHeader && (
+                  <li className="bg-bg-secondary px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Outras entradas
+                  </li>
+                )}
+                <li>
                 <button
                   type="button"
                   data-entry-uuid={entry.uuid.id}
@@ -298,10 +331,14 @@ export function EntryList() {
                   <span className="flex-1 min-w-0">
                     <span
                       className={cn(
-                        "block font-semibold text-sm truncate",
+                        "flex min-w-0 items-center gap-1 font-semibold text-sm",
                         selected && "text-selected-entry-foreground",
                       )}
                     >
+                      {favorite && (
+                        <Star className="size-3.5 shrink-0 fill-amber-400 text-amber-500" />
+                      )}
+                      <span className="truncate">
                       {/* Highlight do trecho que casa com a query.
                           Aplicado APENAS durante busca e quando há
                           título real (não no fallback "(sem título)"). */}
@@ -320,6 +357,7 @@ export function EntryList() {
                               ),
                           )
                         : title}
+                      </span>
                     </span>
                     {subtitle && (
                       <span className="block text-xs text-muted-foreground truncate">
@@ -336,7 +374,8 @@ export function EntryList() {
                     )}
                   </span>
                 </button>
-              </li>
+                </li>
+              </Fragment>
             );
           })}
         </ul>

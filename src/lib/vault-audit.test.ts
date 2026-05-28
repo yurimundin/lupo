@@ -94,6 +94,45 @@ describe("auditVaultEntries", () => {
     expect(duplicateUrl?.entryIds).toEqual(["one", "two"]);
   });
 
+  it("exposes affected entry summaries for guided audit actions", () => {
+    const first = entry({
+      id: "one",
+      title: "GitHub pessoal",
+      username: "a",
+      url: "https://github.com/login",
+      password: "SameStrongPassword!234",
+    });
+    const second = entry({
+      id: "two",
+      title: "GitHub trabalho",
+      username: "b",
+      url: "https://github.com/login",
+      password: "SameStrongPassword!234",
+    });
+
+    const result = auditVaultEntries([first, second]);
+    const reused = result.findings.find(
+      (finding) => finding.type === "reused-password",
+    );
+
+    expect(reused?.affectedEntries).toEqual([
+      {
+        id: "one",
+        title: "GitHub pessoal",
+        username: "a",
+        url: "https://github.com/login",
+        source: first,
+      },
+      {
+        id: "two",
+        title: "GitHub trabalho",
+        username: "b",
+        url: "https://github.com/login",
+        source: second,
+      },
+    ]);
+  });
+
   it("does not flag a healthy unique entry", () => {
     const result = auditVaultEntries([
       entry({

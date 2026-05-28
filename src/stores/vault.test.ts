@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildGroupTree,
+  buildMoveEntryTargetOptions,
   collectEntriesForSearch,
   getGroupDisplayName,
 } from "./vault";
@@ -121,5 +122,29 @@ describe("vault pure selectors", () => {
 
     expect(getGroupDisplayName(asGroup(recycleBin), "trash")).toBe("Lixeira");
     expect(getGroupDisplayName(asGroup(regular), "trash")).toBe("Recycle Bin");
+  });
+
+  it("builds move-entry targets in display order while excluding the recycle bin subtree", () => {
+    const nestedTrash = group("trash-child", "Nested Trash");
+    const recycleBin = group("trash", "Recycle Bin", [], [nestedTrash]);
+    const beta = group("beta", "Beta");
+    const alpha = group("alpha", "Alpha");
+    const root = group("root", "Root", [], [beta, recycleBin, alpha]);
+
+    const options = buildMoveEntryTargetOptions(asGroup(root), "alpha", "trash");
+
+    expect(options.map((option) => option.uuid)).toEqual([
+      "root",
+      "alpha",
+      "beta",
+    ]);
+    expect(options.find((option) => option.uuid === "alpha")).toMatchObject({
+      disabled: true,
+      disabledReason: "current-group",
+    });
+    expect(options.find((option) => option.uuid === "beta")).toMatchObject({
+      disabled: false,
+      disabledReason: null,
+    });
   });
 });

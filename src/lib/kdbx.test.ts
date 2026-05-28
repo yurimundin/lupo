@@ -67,6 +67,7 @@ import {
   moveEntryToRecycleBin,
   restoreEntryFromRecycleBin,
   saveVault,
+  setEntryFavoriteInVault,
   setGroupVisualIconInVault,
 } from "./kdbx";
 
@@ -78,6 +79,8 @@ interface FakeUuid {
 interface FakeEntry {
   uuid: FakeUuid;
   parentGroup?: FakeGroup;
+  customData?: Map<string, { value: string; lastModified?: Date }>;
+  times: { update: () => void };
 }
 
 interface FakeGroup {
@@ -101,7 +104,7 @@ interface FakeDb {
 }
 
 function entry(id: string): FakeEntry {
-  return { uuid: { id } };
+  return { uuid: { id }, times: { update: vi.fn() } };
 }
 
 function group(id: string, name: string): FakeGroup {
@@ -357,5 +360,42 @@ describe("kdbx helpers", () => {
     expect(result).toEqual({ ok: false, error: "save falhou" });
     expect(root.customData.get("sec.basis.groupIcon")?.value).toBe("home");
     expect(root.customData.get("sec.basis.groupIconColor")?.value).toBe("blue");
+  });
+
+  it("stores a Sec.Basis favorite marker on an entry", async () => {
+    const { db, root } = makeDb();
+    const item = entry("entry");
+    attachEntry(root, item);
+
+    const result = await setEntryFavoriteInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      true,
+    );
+
+    expect(result).toEqual({ ok: true, durationMs: 12 });
+    expect(item.customData?.get("sec.basis.entryFavorite")?.value).toBe("true");
+    expect(item.times.update).toHaveBeenCalled();
+  });
+
+  it("rolls the previous favorite marker back when saving fails", async () => {
+    const { db, root } = makeDb();
+    const item = entry("entry");
+    item.customData = new Map([
+      ["sec.basis.entryFavorite", { value: "true", lastModified: new Date(0) }],
+    ]);
+    attachEntry(root, item);
+    invokeMock.mockRejectedValue("save falhou");
+
+    const result = await setEntryFavoriteInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+      false,
+    );
+
+    expect(result).toEqual({ ok: false, error: "save falhou" });
+    expect(item.customData.get("sec.basis.entryFavorite")?.value).toBe("true");
   });
 });

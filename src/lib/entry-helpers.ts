@@ -7,6 +7,7 @@ import * as kdbxweb from "kdbxweb";
 import type { KdbxEntry, KdbxGroup } from "kdbxweb";
 
 const { ProtectedValue } = kdbxweb;
+export const SEC_BASIS_ENTRY_FAVORITE_KEY = "sec.basis.entryFavorite";
 
 /** Lê um campo de texto. Desprotege se for `ProtectedValue`. Vazio se nulo. */
 export function fieldText(entry: KdbxEntry, name: string): string {
@@ -35,6 +36,23 @@ export function getNotes(entry: KdbxEntry): string {
 /** Senha desprotegida — usar APENAS no momento da cópia ou exibição. */
 export function getPassword(entry: KdbxEntry): string {
   return fieldText(entry, "Password");
+}
+
+export function isEntryFavorite(entry: KdbxEntry): boolean {
+  return entry.customData?.get(SEC_BASIS_ENTRY_FAVORITE_KEY)?.value === "true";
+}
+
+export function setEntryFavorite(entry: KdbxEntry, favorite: boolean): void {
+  if (!favorite) {
+    entry.customData?.delete(SEC_BASIS_ENTRY_FAVORITE_KEY);
+    return;
+  }
+
+  entry.customData ??= new Map();
+  entry.customData.set(SEC_BASIS_ENTRY_FAVORITE_KEY, {
+    value: "true",
+    lastModified: new Date(),
+  });
 }
 
 /** Última modificação. `null` se a kdbxweb não tiver gravado. */

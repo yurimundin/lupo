@@ -123,6 +123,8 @@ Princípios de design que guiam o projeto:
   - ✅ Auto-lock e auto-clear de clipboard
   - ✅ Persistência atômica com backup `.kdbx.bak`
   - ✅ Ciclo de vida completo da Lixeira (mover, restaurar, esvaziar — compatível com KeePass)
+  - ✅ Mover entradas entre pastas por drag and drop e diálogo "Mover para pasta..."
+  - ✅ Favoritos de entradas persistidos no `.kdbx` via metadados Sec.Basis
   - ✅ Auto-open do último cofre usado (estilo KeePass — pré-preenche path, senha sempre exigida)
   - ✅ Tela "Sobre" com versão e links (acessível pelo botão Info no header)
   - ✅ Subgrupos expansíveis na sidebar (hierarquia recursiva, persistência por cofre)
@@ -132,11 +134,10 @@ Princípios de design que guiam o projeto:
   - ✅ Empacotamento Windows manual (instaladores `.msi` e `.exe` via Tauri)
   - ✅ Suíte unitária inicial (Vitest + CI)
   - ✅ Motor offline de força/auditoria de senhas
-  - ✅ UI de auditoria do cofre no header, com resumo por severidade e recomendações
+  - ✅ UI de auditoria do cofre no header, com resumo por severidade, recomendações e ações guiadas
   - ✅ Recuperação guiada para `.tmp`/`.bak` após crash ou gravação interrompida
 
-- **Fase 2:** ações guiadas a partir da auditoria, YubiKey, TOTP, anexos,
-  importação Bitwarden/1Password/LastPass.
+- **Fase 2:** YubiKey, TOTP, anexos, importação Bitwarden/1Password/LastPass.
 
 - **Fase 3:** Extensão de browser para auto-fill, aplicativo Android e painel
   de saúde do cofre (LGPD-friendly).

@@ -1,7 +1,18 @@
 import type { Kdbx, KdbxEntry, KdbxGroup } from "kdbxweb";
 
+import {
+  SEC_BASIS_ENTRY_FAVORITE_KEY,
+  setEntryFavorite,
+} from "../entry-helpers";
 import { saveVault } from "./persistence";
 import { describeError } from "./shared";
+
+type KdbxEntryCustomDataItem = NonNullable<KdbxEntry["customData"]> extends Map<
+  string,
+  infer Item
+>
+  ? Item
+  : never;
 
 /** Resultado de `moveEntryToRecycleBin` — backend pode retornar duração ou erro. */
 export type DeleteResult =
@@ -10,6 +21,11 @@ export type DeleteResult =
 
 /** Resultado de `moveEntryToGroup` — duração ou erro. */
 export type MoveEntryResult =
+  | { ok: true; durationMs: number }
+  | { ok: false; error: string };
+
+/** Resultado de `setEntryFavoriteInVault` — duração ou erro. */
+export type SetEntryFavoriteResult =
   | { ok: true; durationMs: number }
   | { ok: false; error: string };
 
@@ -24,6 +40,66 @@ function isGroupInRecycleBinSubtree(
     current = current.parentGroup;
   }
   return false;
+}
+
+export async function setEntryFavoriteInVault(
+  filePath: string,
+  kdbx: Kdbx,
+  entry: KdbxEntry,
+  favorite: boolean,
+): Promise<SetEntryFavoriteResult> {
+  if (!filePath || !kdbx || !entry) {
+    return { ok: false, error: "Estado inválido para favoritar entrada." };
+  }
+
+  const snapshot = {
+    hadCustomData: !!entry.customData,
+    oldFavoriteItem: entry.customData?.get(SEC_BASIS_ENTRY_FAVORITE_KEY) as
+      | KdbxEntryCustomDataItem
+      | undefined,
+  };
+
+  try {
+    setEntryFavorite(entry, favorite);
+    entry.times.update();
+
+    const result = await saveVault(filePath, kdbx);
+    if (!result.ok) {
+      restoreEntryFavoriteSnapshot(entry, snapshot);
+      return { ok: false, error: result.error };
+    }
+
+    return { ok: true, durationMs: result.durationMs };
+  } catch (e) {
+    restoreEntryFavoriteSnapshot(entry, snapshot);
+    return {
+      ok: false,
+      error: `Erro ao favoritar entrada: ${describeError(e)}`,
+    };
+  }
+}
+
+function restoreEntryFavoriteSnapshot(
+  entry: KdbxEntry,
+  snapshot: {
+    hadCustomData: boolean;
+    oldFavoriteItem: KdbxEntryCustomDataItem | undefined;
+  },
+): void {
+  if (!snapshot.hadCustomData) {
+    entry.customData = undefined;
+    return;
+  }
+
+  entry.customData ??= new Map();
+  if (snapshot.oldFavoriteItem) {
+    entry.customData.set(
+      SEC_BASIS_ENTRY_FAVORITE_KEY,
+      snapshot.oldFavoriteItem,
+    );
+  } else {
+    entry.customData.delete(SEC_BASIS_ENTRY_FAVORITE_KEY);
+  }
 }
 
 /**

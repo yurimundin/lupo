@@ -29,6 +29,20 @@ export interface GroupTreeNode {
   entryCount: number;
 }
 
+export type MoveEntryTargetDisabledReason = "current-group" | null;
+
+export interface MoveEntryTargetOption {
+  uuid: string;
+  name: string;
+  depth: number;
+  group: KdbxGroup;
+  disabled: boolean;
+  disabledReason: MoveEntryTargetDisabledReason;
+  entryCount: number;
+  iconId: GroupLucideIconId | null;
+  iconColorId: GroupIconColorId | null;
+}
+
 export function buildGroupTreeNode(
   group: KdbxGroup,
   depth: number,
@@ -77,6 +91,39 @@ export function buildGroupTree(
   return [buildGroupTreeNode(root, 0, null, recycleBinUuidId)];
 }
 
+export function buildMoveEntryTargetOptions(
+  root: KdbxGroup,
+  currentGroupUuid: string | null,
+  recycleBinUuidId: string | null,
+): MoveEntryTargetOption[] {
+  const out: MoveEntryTargetOption[] = [];
+
+  function walk(group: KdbxGroup, depth: number) {
+    const uuid = group.uuid.id;
+    if (recycleBinUuidId && uuid === recycleBinUuidId) return;
+
+    const isCurrentGroup = currentGroupUuid !== null && uuid === currentGroupUuid;
+    out.push({
+      uuid,
+      name: getGroupDisplayName(group, recycleBinUuidId),
+      depth,
+      group,
+      disabled: isCurrentGroup,
+      disabledReason: isCurrentGroup ? "current-group" : null,
+      entryCount: group.entries.length,
+      iconId: getGroupLucideIconId(group),
+      iconColorId: getGroupIconColorId(group),
+    });
+
+    for (const child of sortGroupsForDisplay(group.groups, recycleBinUuidId)) {
+      walk(child, depth + 1);
+    }
+  }
+
+  walk(root, 0);
+  return out;
+}
+
 /**
  * Retorna o nome de exibição de um grupo, traduzindo "Recycle Bin" para
  * "Lixeira" quando o grupo é a Lixeira do cofre.
@@ -99,4 +146,3 @@ export function getGroupDisplayName(
   }
   return group.name || "(sem nome)";
 }
-
