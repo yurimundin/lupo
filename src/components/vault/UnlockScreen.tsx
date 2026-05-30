@@ -190,10 +190,10 @@ export function UnlockScreen() {
           <img
             src="/lupo-appicon-steel.svg"
             alt="Lupo logo"
-            className="h-24 w-24"
+            className="size-[84px]"
           />
           <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
               Lupo
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -202,7 +202,7 @@ export function UnlockScreen() {
           </div>
         </header>
 
-        <Card className="w-full">
+        <Card className="w-full border border-border shadow-sm ring-0">
           <CardContent className="p-8">
             <form onSubmit={handleUnlock} className="space-y-6">
               <div className="space-y-2">

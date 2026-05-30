@@ -21,10 +21,10 @@ export function OpenCreateScreen() {
           <img
             src="/lupo-appicon-steel.svg"
             alt="Lupo logo"
-            className="h-24 w-24"
+            className="size-[84px]"
           />
           <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
               Lupo
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -33,7 +33,7 @@ export function OpenCreateScreen() {
           </div>
         </header>
 
-        <Card className="w-full">
+        <Card className="w-full border border-border shadow-sm ring-0">
           <CardContent className="p-8">
             <Tabs defaultValue="open" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">

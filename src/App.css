@@ -11,7 +11,7 @@
    Duas camadas de tokens, propositalmente:
 
    1. Tokens "crus" do Lupo (--bg, --brand-primary, --success, etc.)
-      definidos pela identidade visual cravada na sessão 2.
+      definidos pela identidade visual atual da marca.
    2. Tokens convencionais do shadcn/ui (--background, --primary, --destructive,
       etc.) montados em cima dos crus. Isso permite que componentes shadcn
       auto-gerados sigam nossa paleta SEM precisarem ser editados.
@@ -27,35 +27,35 @@
   /* ----- Camada 1 — tokens crus do Lupo ----- */
 
   /* Marca */
-  --brand-primary: #4eb1d9;        /* azul Sec — ações, foco, links */
-  --brand-primary-hover: #4abfd9;  /* variação turquesa */
-  --brand-accent: #91f2e9;         /* verde-água — destaques visuais, badges */
-  --brand-tertiary: #c9cbf2;       /* lavanda — ilustrações */
-  --brand-soft: #d0ecf2;           /* apoio claro — fundos sutis no light */
+  --brand-primary: #d98324;        /* laranja Lupo — ações, foco, links */
+  --brand-primary-hover: #e0a458;  /* variação clara para hover */
+  --brand-accent: #e0a458;         /* dourado — destaques visuais, badges */
+  --brand-tertiary: #253659;       /* steel/navy — base institucional */
+  --brand-soft: #f8efe1;           /* apoio claro — fundos sutis no light */
 
   /* Neutros — light (default) */
   --bg: #ffffff;
-  --bg-secondary: #f7f9fb;
-  --border-color: #e5eaf0;
-  --text-primary: #1a1d24;
+  --bg-secondary: #fbfcfe;
+  --border-color: #edf1f6;
+  --text-primary: #16181d;
   --text-secondary: #6b7280;
 
   /* Semânticas (light) */
-  --success: #46a758;
-  --warning: #ffb224;
-  --danger: #e5484d;
-  /* NOTA: --brand-accent (#91f2e9) é destaque visual, NÃO sucesso. */
+  --success: #1f8a5b;
+  --warning: #c77700;
+  --danger: #bf2431;
+  /* NOTA: --brand-accent (#e0a458) é destaque visual, NÃO sucesso. */
 
   /* Selected-state tokens (theme-aware) — Sessão 20.
      Tokens semânticos para "estado selecionado" (grupos na sidebar +
      entries na lista). Substituem magic colors hardcoded no light
-     (#E8F4FA, brand-soft) e permitem variantes legíveis no dark
+     (#F3F8FD, brand-soft) e permitem variantes legíveis no dark
      sem expor cores arbitrárias nos componentes. */
-  --selected-bg: #d0ecf2;          /* grupo selecionado — = brand-soft */
-  --selected-fg: #0e3a4f;          /* texto sobre --selected-bg (teal escuro) */
-  --selected-entry-bg: #e8f4fa;    /* entry selecionada (azul mais claro) */
-  --selected-entry-fg: #0e3a4f;    /* texto sobre --selected-entry-bg */
-  --selected-border: #4eb1d9;      /* borda esquerda da entry — = brand-primary */
+  --selected-bg: #e9f1fa;          /* grupo selecionado */
+  --selected-fg: #16314f;          /* texto sobre --selected-bg */
+  --selected-entry-bg: #f3f8fd;    /* entry selecionada */
+  --selected-entry-fg: #16314f;    /* texto sobre --selected-entry-bg */
+  --selected-border: #d98324;      /* borda esquerda da entry */
 
   /* ----- Camada 2 — tokens shadcn mapeados para os crus ----- */
 
@@ -66,7 +66,7 @@
   --popover: var(--bg);
   --popover-foreground: var(--text-primary);
   --primary: var(--brand-primary);
-  --primary-foreground: #ffffff;
+  --primary-foreground: #1a1206;
   --secondary: var(--bg-secondary);
   --secondary-foreground: var(--text-primary);
   --muted: var(--bg-secondary);
@@ -84,26 +84,27 @@
 /* Modo dark — só os tokens que mudam (Camada 1). A Camada 2 herda
    automaticamente porque é definida via var(). */
 .dark {
-  --bg: #0f1419;
-  --bg-secondary: #171b22;
-  --border-color: #2a3340;          /* +legibilidade dos separadores */
-  --text-primary: #f4f6f8;
-  --text-secondary: #b0b8c4;        /* +contraste vs #9ca3af anterior */
+  --bg: #0e0f12;
+  --bg-secondary: #15171c;
+  --border-color: rgba(92, 124, 168, 0.2);
+  --text-primary: #e7e8ea;
+  --text-secondary: #a6adb8;
 
   /* Semânticas — variantes mais brilhantes para legibilidade no dark */
+  --success: #46c38a;
   --warning: #ffc34d;
   --danger: #ff6b70;
 
   /* Selected-state tokens — variantes dark com contraste correto
      (light blue sobre background dark fica ilegível, tokens mudam aqui). */
-  --selected-bg: #1d3a48;           /* grupo selecionado — deep teal */
-  --selected-fg: #b8e6f5;           /* texto sobre --selected-bg */
-  --selected-entry-bg: #152b36;     /* entry selecionada */
-  --selected-entry-fg: #d6effa;     /* texto sobre --selected-entry-bg */
-  --selected-border: #6cc6e6;       /* borda — variant brighter de brand-primary */
+  --brand-soft: rgba(217, 131, 36, 0.12);
+  --selected-bg: rgba(37, 54, 89, 0.5);
+  --selected-fg: #cde0f5;
+  --selected-entry-bg: rgba(217, 131, 36, 0.1);
+  --selected-entry-fg: #f0dcc2;
+  --selected-border: #d98324;
 
-  /* Marca e --primary-foreground/--destructive-foreground mantêm os
-     mesmos valores (success também — verde funciona igual em ambos). */
+  /* Marca e foregrounds mantêm os mesmos valores entre os temas. */
 }
 
 /* =============================================================================

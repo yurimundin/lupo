@@ -748,21 +748,21 @@ Se vazio, trocar por `style` inline.
 ## 13. Identidade visual (logo)
 
 O logo do Lupo foi escolhido fora desta sessão e versionado em
-[lupo-appicon-steel.svg](lupo-appicon-steel.svg) como fonte
-imutável (1024×1024, RGBA). Os ícones derivados (Windows `.ico`, macOS
-`.icns`, PNGs Microsoft Store, mipmaps Android, AppIcons iOS) ficam em
+[lupo-appicon-steel.svg](lupo-appicon-steel.svg) como fonte SVG
+canônica. Os ícones derivados (Windows `.ico`, macOS `.icns`, PNGs
+Microsoft Store, mipmaps Android, AppIcons iOS) ficam em
 [src-tauri/icons/](src-tauri/icons/) e são gerados automaticamente:
 
 ```bash
 npx @tauri-apps/cli icon lupo-appicon-steel.svg
 ```
 
-**Conceito visual:** três pontos brancos centralizados sobre gradiente
-diagonal turquesa (`--brand-primary` `#4EB1D9`) → lavanda
-(`--brand-tertiary` `#C9CBF2`), cantos arredondados estilo iOS. Usa a
-paleta cravada da marca, sem cores estranhas ao sistema.
+**Conceito visual:** base steel/navy (`--brand-tertiary` `#253659`),
+escudo sutil em branco e assinatura Lupo em laranja
+(`--brand-primary` `#D98324`). Cantos arredondados estilo app icon.
+Usa a paleta cravada da marca, sem cores estranhas ao sistema.
 
-Para regerar (após alterar o PNG fonte): rodar o comando acima e
+Para regerar (após alterar o SVG fonte): rodar o comando acima e
 commitar `src-tauri/icons/` junto com o novo `assets/`. NÃO editar
 arquivos individuais em `src-tauri/icons/` à mão.
 
@@ -2001,7 +2001,7 @@ grupo.
 **Esquema:** Semantic Versioning (SemVer) —
 `MAJOR.MINOR.PATCH[-pre-release]`.
 
-**Versão atual:** `0.1.4`. Release Windows de validação controlada, ainda sem
+**Versão atual:** `0.1.6`. Release Windows de validação controlada, ainda sem
 assinatura de código e sem auto-update.
 Convenção de bumps:
 
