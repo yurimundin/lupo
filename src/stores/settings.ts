@@ -8,7 +8,7 @@
 // senhas, ProtectedValue). Para isso, ver `vault.ts` (sem persist).
 //
 // Sobre o tema: a Sessão 2 implementou o tema em `src/lib/theme.ts` com
-// localStorage próprio (chave `sec-basis-theme`). Não migramos pra cá
+// localStorage próprio (chave `lupo-theme`). Não migramos pra cá
 // nesta sessão pra evitar refactor não pedido. Uma sessão futura pode
 // unificar; por hoje, theme.ts é a fonte de verdade do tema.
 
@@ -174,6 +174,6 @@ export const useSettingsStore = create<SettingsState>()(
         return expanded.includes(groupUuid);
       },
     }),
-    { name: "sec-basis-settings" },
+    { name: "lupo-settings" },
   ),
 );

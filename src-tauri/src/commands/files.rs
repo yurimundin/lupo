@@ -3,7 +3,7 @@ pub fn log_smoke_result(message: String) {
     println!("[SMOKE] {message}");
 
     let temp_dir = std::env::temp_dir();
-    let path = temp_dir.join("sec-basis-bench.log");
+    let path = temp_dir.join("lupo-bench.log");
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)

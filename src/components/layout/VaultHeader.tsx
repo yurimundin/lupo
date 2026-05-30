@@ -33,7 +33,7 @@ export function VaultHeader() {
     <header className="h-12 shrink-0 flex items-center gap-3 px-4 border-b border-border bg-bg-secondary">
       <div className="flex items-center gap-2 min-w-0">
         <img
-          src="/secbasis-logo.png"
+          src="/lupo-appicon-steel.svg"
           alt=""
           className="size-5 rounded shrink-0"
           aria-hidden="true"
@@ -88,8 +88,8 @@ export function VaultHeader() {
         variant="ghost"
         size="icon"
         onClick={() => setAboutOpen(true)}
-        aria-label="Sobre o Sec.Basis"
-        title="Sobre o Sec.Basis"
+        aria-label="Sobre o Lupo"
+        title="Sobre o Lupo"
       >
         <Info />
       </Button>

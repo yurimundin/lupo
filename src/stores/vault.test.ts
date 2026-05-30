@@ -87,7 +87,21 @@ describe("vault pure selectors", () => {
     });
   });
 
-  it("includes Sec.Basis custom Lucide icon and color metadata in the group tree", () => {
+  it("includes Lupo custom Lucide icon and color metadata in the group tree", () => {
+    const child = group("child", "Child");
+    child.customData = new Map([
+      ["lupo.groupIcon", { value: "shield" }],
+      ["lupo.groupIconColor", { value: "green" }],
+    ]);
+    const root = group("root", "Root", [], [child]);
+
+    const [tree] = buildGroupTree(asGroup(root), null);
+
+    expect(tree.children[0].iconId).toBe("shield");
+    expect(tree.children[0].iconColorId).toBe("green");
+  });
+
+  it("reads legacy visual metadata from older vaults", () => {
     const child = group("child", "Child");
     child.customData = new Map([
       ["sec.basis.groupIcon", { value: "shield" }],

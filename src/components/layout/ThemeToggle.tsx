@@ -1,6 +1,6 @@
 // Botão de toggle de tema (light ↔ dark) no `VaultHeader`. Persiste a
 // preferência via `setTheme()` em `lib/theme.ts` (localStorage chave
-// `sec-basis-theme`). Toggle binário: ignora a opção "system" — uma vez
+// `lupo-theme`). Toggle binário: ignora a opção "system" — uma vez
 // que o usuário clica, fica explicit (atende UX do mockup S20).
 //
 // Inicialização: lê o tema EFETIVAMENTE aplicado no `<html>` (resolved),

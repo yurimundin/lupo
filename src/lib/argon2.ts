@@ -1,6 +1,6 @@
 // Wrapper TypeScript sobre o comando Tauri `argon2_derive_key`.
 //
-// Toda a derivação de chave Argon2 do Sec.Basis passa por aqui — o backend
+// Toda a derivação de chave Argon2 do Lupo passa por aqui — o backend
 // Rust faz o trabalho pesado (ver `src-tauri/src/crypto.rs`) e devolve a
 // chave derivada. NÃO implementamos Argon2 em JS/WASM por decisão
 // arquitetural (ver CLAUDE.md §6).

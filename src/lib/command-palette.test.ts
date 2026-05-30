@@ -6,7 +6,7 @@ import {
   buildCommandPaletteItems,
   COMMAND_PALETTE_ACTIONS,
 } from "./command-palette";
-import { SEC_BASIS_ENTRY_FAVORITE_KEY } from "./entry-helpers";
+import { LUPO_ENTRY_FAVORITE_KEY } from "./entry-helpers";
 
 interface FakeGroup {
   uuid: { id: string };
@@ -47,7 +47,7 @@ function entry(input: {
   };
   if (input.favorite) {
     fake.customData = new Map([
-      [SEC_BASIS_ENTRY_FAVORITE_KEY, { value: "true" }],
+      [LUPO_ENTRY_FAVORITE_KEY, { value: "true" }],
     ]);
   }
   return fake as unknown as KdbxEntry;
@@ -72,6 +72,26 @@ describe("buildCommandPaletteItems", () => {
       .toEqual(COMMAND_PALETTE_ACTIONS.map((action) => action.id));
     expect(items.filter((item) => item.type === "entry").map((item) => item.id))
       .toEqual(["entry:fav", "entry:normal"]);
+  });
+
+  it("treats legacy favorite metadata as favorite", () => {
+    const root = group("root", "Root");
+    const favorite = entry({ id: "legacy", title: "Legacy", parentGroup: root });
+    favorite.customData = new Map([
+      ["sec.basis.entryFavorite", { value: "true" }],
+    ]);
+
+    const items = buildCommandPaletteItems({
+      entries: [
+        entry({ id: "normal", title: "Normal", parentGroup: root }),
+        favorite,
+      ],
+      query: "",
+      recycleBinUuidId: null,
+    });
+
+    expect(items.filter((item) => item.type === "entry").map((item) => item.id))
+      .toEqual(["entry:legacy", "entry:normal"]);
   });
 
   it("filters actions and entries by query while keeping group path metadata", () => {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 
 import { getResolvedTheme } from "@/lib/theme"
 
-// Adaptação Sec.Basis: o componente original do shadcn usa `next-themes`
+// Adaptação Lupo: o componente original do shadcn usa `next-themes`
 // (que não temos). Nosso sistema de tema vive em `src/lib/theme.ts` e
 // aplica a classe `.dark` no <html>. Aqui observamos a classe via
 // MutationObserver para o sonner pegar mudanças de tema em tempo real.

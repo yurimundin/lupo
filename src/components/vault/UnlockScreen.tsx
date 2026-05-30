@@ -8,7 +8,7 @@
 // diretamente. Se há key file lembrado, pré-preenche; se sumiu do disco,
 // mostra warning e abre picker uma vez (mesmo padrão do `OpenVaultTab`).
 //
-// Sessão 8: redesign visual com logo Sec.Basis 96px + hierarquia
+// Sessão 8: redesign visual com logo Lupo 96px + hierarquia
 // unificada com OpenCreateScreen (mesmo header, mesmo footer, mesmo
 // container). Card sem tabs (UnlockScreen é um fluxo focado: abrir
 // AQUELE cofre, não escolher entre abrir/criar).
@@ -188,13 +188,13 @@ export function UnlockScreen() {
       <div className="w-full max-w-[460px] flex flex-col items-center gap-8">
         <header className="flex flex-col items-center gap-4">
           <img
-            src="/secbasis-logo.png"
-            alt="Sec.Basis logo"
+            src="/lupo-appicon-steel.svg"
+            alt="Lupo logo"
             className="h-24 w-24"
           />
           <div className="text-center">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Sec.Basis
+              Lupo
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Cofre bloqueado

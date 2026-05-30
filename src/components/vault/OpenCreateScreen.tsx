@@ -1,8 +1,8 @@
-// Tela inicial do Sec.Basis — abrir cofre existente OU criar novo.
+// Tela inicial do Lupo — abrir cofre existente OU criar novo.
 // Renderizada quando NÃO há cofre carregado e NÃO há `lastFilePath`
 // lembrado (ver switch em App.tsx).
 //
-// Sessão 8: redesign visual com logo Sec.Basis 96px no header e
+// Sessão 8: redesign visual com logo Lupo 96px no header e
 // sistema de espaçamento explícito (gap-4/6/8). Estrutura lógica
 // (Card + Tabs + dois sub-componentes OpenVaultTab/CreateVaultTab)
 // preservada — só o wrapper foi reorganizado.
@@ -19,13 +19,13 @@ export function OpenCreateScreen() {
       <div className="w-full max-w-[460px] flex flex-col items-center gap-8">
         <header className="flex flex-col items-center gap-4">
           <img
-            src="/secbasis-logo.png"
-            alt="Sec.Basis logo"
+            src="/lupo-appicon-steel.svg"
+            alt="Lupo logo"
             className="h-24 w-24"
           />
           <div className="text-center">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Sec.Basis
+              Lupo
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Gerenciador de senhas offline

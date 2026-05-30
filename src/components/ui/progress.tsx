@@ -3,7 +3,7 @@ import { Progress as ProgressPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
-// Ajuste Sec.Basis sobre o componente shadcn original: aceita
+// Ajuste Lupo sobre o componente shadcn original: aceita
 // `indicatorClassName` para colorir a barra interna conforme contexto
 // (ex.: medidor de força de senha que troca de bg-destructive ↔ bg-success).
 

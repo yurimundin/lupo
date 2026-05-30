@@ -1,0 +1,9 @@
+<svg width="256" height="256" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lupo">
+  <title>Lupo app icon</title>
+  <rect x="0" y="0" width="100" height="100" rx="22" fill="#253659"/>
+  <path d="M 50,8 L 84,20 L 84,52 C 84,70 68,84 50,92 C 32,84 16,70 16,52 L 16,20 Z" fill="#F2F2F2" opacity="0.06"/>
+  <path d="M 50,13 L 80,24 L 80,52 C 80,68 66,80 50,88 C 34,80 20,68 20,52 L 20,24 Z" fill="none" stroke="#F2F2F2" stroke-width="1.5" stroke-linejoin="round" opacity="0.22"/>
+  <rect x="30" y="38" width="40" height="7" rx="3.5" fill="#F2F2F2"/>
+  <rect x="36" y="50" width="28" height="7" rx="3.5" fill="#F2F2F2" opacity="0.7"/>
+  <rect x="42" y="62" width="16" height="7" rx="3.5" fill="#D98324"/>
+</svg>

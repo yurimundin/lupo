@@ -1,6 +1,6 @@
-# Lupo — Contexto para o Claude
+# Lupo — Contexto para o Codex
 
-> Este arquivo é carregado automaticamente em toda sessão do Claude Code dentro
+> Este arquivo é carregado automaticamente em toda sessão do Codex dentro
 > deste repositório. Mantenha-o atualizado: ele é a memória persistente do
 > projeto.
 
@@ -452,7 +452,7 @@ Em **2026-05-04**, primeira sessão concluiu:
 - Tailwind configurado em `vite.config.ts` e importado em `App.css`.
 - `tauri.conf.json` com productName "Lupo", janela 1100×720.
 - Estrutura de pastas criada com placeholders (`TODO`).
-- `CLAUDE.md`, `README.md`, `LICENSE` (MIT, Yuri Mundin Ferreira) e
+- `AGENTS.md`, `README.md`, `LICENSE` (MIT, Yuri Mundin Ferreira) e
   `.gitignore` criados.
 - Override de segurança `@xmldom/xmldom` aplicado e validado (ver §7).
 - MSVC C++ Build Tools 2022 instalado via `winget` (workload VCTools) —
@@ -793,33 +793,33 @@ Repositório público: <https://github.com/yurimundin/lupo>
 | `70e1e23` | feat(vault) | add right-click context menu for groups (S26) |
 | `24246fa` | feat(vault) | add groundwork for group rename/delete (S25 partial) |
 | `ad8e79e` | feat(vault) | add "Criar pasta nova" via "+" button in sidebar header (S24) |
-| `0f46473` | docs | align CLAUDE.md §14 + §28 reinforce through Session 22 (S22 hk) |
+| `0f46473` | docs | align AGENTS.md §14 + §28 reinforce through Session 22 (S22 hk) |
 | `5a117de` | chore | bump tauri from 2.11.0 to 2.11.1 in /src-tauri (S22 Bloco 3) |
 | `bdad9f7` | chore | bump hono from 4.12.16 to 4.12.18 (S22 Bloco 2) |
 | `87929b3` | chore | bump fast-uri from 3.1.1 to 3.1.2 (S22 Bloco 1) |
 | `062b4c1` | feat(ui) | add "Powered by BasisApp" footer in sidebar + extract openExternalSafe (S21 Bloco 2) |
-| `8e23aac` | docs | align CLAUDE.md §14 with project state through Session 20 (S21 Bloco 1) |
+| `8e23aac` | docs | align AGENTS.md §14 with project state through Session 20 (S21 Bloco 1) |
 | `69def18` | feat | adopt hi-fi mockup design — theme toggle, semantic selected tokens, header polish (S20) |
 | `6286099` | build | configure tauri for alpha .exe-only distribution (S19 Bloco 4) |
 | `f905e8b` | fix | implement in-memory rollback in trash operations — move + restore (S19 Bloco 3) |
 | `1e95381` | perf | code-split bundle into vendor chunks via manualChunks (S19 Bloco 2) |
-| `9725abc` | docs | align CLAUDE.md §14 with project state through Session 18 (S19 Bloco 1) |
+| `9725abc` | docs | align AGENTS.md §14 with project state through Session 18 (S19 Bloco 1) |
 | `15b30d4` | chore | add ESLint with flat config + audit existing eslint-disable comments (S18) |
-| `fc0e708` | docs | align README and CLAUDE.md §14 with project state through Session 17 (S17.5) |
+| `fc0e708` | docs | align README and AGENTS.md §14 with project state through Session 17 (S17.5) |
 | `77e5712` | feat | real-time search across all entries (S17) |
-| `ba813a0` | docs | document Windows packaging strategic plan (CLAUDE.md §32) (S16) |
-| `6a363df` | docs | document Smart App Control / MOTW gotcha for Tauri (CLAUDE.md §31) (S15) |
-| `6c75758` | docs | align CLAUDE.md §14 with project state through Session 14 (S14.5) |
-| `2575be6` | docs | document devDependency vulnerability process (CLAUDE.md §30) (S14) |
+| `ba813a0` | docs | document Windows packaging strategic plan (AGENTS.md §32) (S16) |
+| `6a363df` | docs | document Smart App Control / MOTW gotcha for Tauri (AGENTS.md §31) (S15) |
+| `6c75758` | docs | align AGENTS.md §14 with project state through Session 14 (S14.5) |
+| `2575be6` | docs | document devDependency vulnerability process (AGENTS.md §30) (S14) |
 | `a61cb31` | chore | add basic CI workflow (GitHub Actions with tsc + cargo check) (S13) |
-| `3831767` | docs | document Dependabot stale PR lesson (CLAUDE.md §28) (S12) |
+| `3831767` | docs | document Dependabot stale PR lesson (AGENTS.md §28) (S12) |
 | `48d084e` | feat | expandable subgroups in sidebar with persistent state (S11) |
-| `7d7ba75` | docs | align CLAUDE.md §14 and README with project state through Session 10 (S10.5) |
-| `d2cc329` | docs | document smoke test gating strategy (CLAUDE.md §26) (S10 Tarefa C) |
+| `7d7ba75` | docs | align AGENTS.md §14 and README with project state through Session 10 (S10.5) |
+| `d2cc329` | docs | document smoke test gating strategy (AGENTS.md §26) (S10 Tarefa C) |
 | `8d79212` | chore | update zustand and shadcn to latest patch/minor (S10 Tarefa B) |
 | `f9aedcc` | chore | sync Cargo.toml version with project manifests (0.1.0-alpha) (S9 hk) |
 | `3082075` | chore | sync package-lock.json version with package.json (0.1.0-alpha) (S9 hk) |
-| `2800448` | docs | document Linux-only transitive vulnerability analysis (CLAUDE.md §25) (S9) |
+| `2800448` | docs | document Linux-only transitive vulnerability analysis (AGENTS.md §25) (S9) |
 | `a08f14f` | feat | redesign unlock screen + auto-open last vault (S8) |
 | `05e6ef1` | feat | add SemVer versioning and About dialog (S7) |
 | `47a82fb` | docs | close Session 5 deliverables (stale text, history, roadmap) (S6) |
@@ -838,7 +838,7 @@ Repositório público: <https://github.com/yurimundin/lupo>
 | `ad2e926` | revert | temporarily remove security.txt reference until file is uploaded |
 | `16afd0a` | security | replace email placeholder and reference security.txt |
 | `837f281` | security | replace email placeholder with security@basis.app.br |
-| `5464c01` | docs | reference commits and milestones in CLAUDE.md |
+| `5464c01` | docs | reference commits and milestones in AGENTS.md |
 | `e5a3c02` | chore | add app icon, security policy and contribution guide |
 | `995428a` | feat | argon2, key file support, vault layout and security tooling |
 | `8de660f` | chore | initial scaffolding — tauri v2 + react + tailwind + kdbxweb |
@@ -875,7 +875,7 @@ de correção.
 - ✅ **Sessão 4.5 Bloco 1** (`2282553`): correção de instruções de clone
   no README
 - ✅ **Sessão 4.5 Bloco 2** (`32701da` + `8147e45`): atualização ampla
-  da documentação (README, CLAUDE.md §14, CONTRIBUTING.md L22) e
+  da documentação (README, AGENTS.md §14, CONTRIBUTING.md L22) e
   decisão de estratégia de distribuição (KeePass-style direct download
   via site oficial, sem Microsoft Store).
 - ✅ **Sessão 4.5 Bloco 3** (`caffd14` + GitHub UI): governança do
@@ -919,7 +919,7 @@ de correção.
     confirmou que glib é dependência Linux-only (gtk + webkit2gtk +
     wry stack) e NÃO está no binário Windows.
   - Alerta dispensado no GitHub como "Risk tolerable" com referência
-    a §25 do CLAUDE.md (que estabelece processo para vulnerabilidades
+    a §25 do AGENTS.md (que estabelece processo para vulnerabilidades
     transitivas Linux-only).
   - Setup de máquina nova Windows (Build Tools + Rust + Tauri) também
     foi parte desta sessão.
@@ -2152,7 +2152,7 @@ Zustand `persist` middleware → `localStorage` chave
 `lupo-settings`.
 
 **Mesma natureza de "metadata operacional"** documentada em §6 do
-CLAUDE.md (path do key file por cofre): caminho de arquivo NÃO é
+AGENTS.md (path do key file por cofre): caminho de arquivo NÃO é
 segredo, ACL do APPDATA é o limite de segurança real. Criptografar
 seria security theater.
 
@@ -2483,7 +2483,7 @@ dependency esperada — não confiar em "diff é pequeno?".
 
 PR tauri 2.11.1 tinha base em S20 (4 commits behind main). Mergear
 via UI sem rebase deletaria PoweredByBasis.tsx, external.ts, marcos
-S19+S20+S21 do CLAUDE.md, e reverteria fast-uri + hono da S22.
+S19+S20+S21 do AGENTS.md, e reverteria fast-uri + hono da S22.
 Lição: pattern §28 (S12) re-aplica — diff stat é primeira validação,
 mas diff conteúdo (`git diff` completo) é a segunda.
 

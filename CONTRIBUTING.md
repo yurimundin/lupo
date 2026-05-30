@@ -1,11 +1,11 @@
-# Contribuindo com o Sec.Basis
+# Contribuindo com o Lupo
 
-Obrigado por considerar contribuir! Sec.Basis é um projeto open source
+Obrigado por considerar contribuir! Lupo é um projeto open source
 MIT que se beneficia de contribuições da comunidade.
 
 ## Status do projeto
 
-Sec.Basis está em desenvolvimento ativo. Ainda não estamos abertos a
+Lupo está em desenvolvimento ativo. Ainda não estamos abertos a
 Pull Requests grandes — preferimos discutir mudanças via issue antes.
 Pequenas correções (typos, bugs óbvios) são bem-vindas diretamente.
 
@@ -19,7 +19,7 @@ Veja o [README.md](./README.md) para instruções completas.
 - Comentários em português brasileiro.
 - Código (variáveis, funções, arquivos) em inglês.
 - UI em português brasileiro (i18n no futuro).
-- Tailwind CSS: prefira tokens da paleta Sec.Basis. Arbitrary values
+- Tailwind CSS: prefira tokens da paleta Lupo. Arbitrary values
   (ex: `max-w-[440px]`) são aceitos quando o token não cobre o caso.
   Para layouts críticos (grid, flex), considerar inline `style={{ ... }}`
   por determinismo — ver CLAUDE.md §12 sobre o bug do scanner do Tailwind 4.
@@ -27,7 +27,7 @@ Veja o [README.md](./README.md) para instruções completas.
 
 ## Convenções de commits
 
-Sec.Basis usa [Conventional Commits](https://www.conventionalcommits.org/):
+Lupo usa [Conventional Commits](https://www.conventionalcommits.org/):
 
 | Prefixo | Quando usar |
 |---|---|
@@ -53,7 +53,7 @@ Mudanças em qualquer código relacionado a:
 
 ## Reportando bugs
 
-- Bug normal: [issues do GitHub](https://github.com/yurimundin/secbasis/issues).
+- Bug normal: [issues do GitHub](https://github.com/yurimundin/lupo/issues).
 - Vulnerabilidade de segurança: ver [SECURITY.md](./SECURITY.md) — **NÃO** abra issue pública.
 
 ## Bench em release
@@ -62,6 +62,6 @@ Para rodar smoke test em build de release:
 
 ```bash
 VITE_RUN_SMOKE=1 npm run tauri build
-./src-tauri/target/release/secbasis.exe
-cat $USERPROFILE/AppData/Local/Temp/sec-basis-bench.log
+./src-tauri/target/release/lupo.exe
+cat $USERPROFILE/AppData/Local/Temp/lupo-bench.log
 ```

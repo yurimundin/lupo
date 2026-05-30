@@ -126,8 +126,8 @@ export function CreateVaultTab() {
     try {
       const path = await saveDialog({
         title: "Salvar key file",
-        defaultPath: `${sanitizeFileName(vaultName) || "secbasis-key"}.keyx`,
-        filters: [{ name: "Sec.Basis Key File", extensions: ["keyx"] }],
+        defaultPath: `${sanitizeFileName(vaultName) || "lupo-key"}.keyx`,
+        filters: [{ name: "Lupo Key File", extensions: ["keyx"] }],
       });
       if (!path) return;
       const bytes = await generateKeyFile(path);
@@ -187,7 +187,7 @@ export function CreateVaultTab() {
       setConfirm("");
 
       await writeNewVaultFile(vaultPath, db);
-      console.info("[Sec.Basis] cofre criado em:", vaultPath);
+      console.info("[Lupo] cofre criado em:", vaultPath);
 
       const usedKeyFilePath = useKeyFile && keyFile ? keyFile.path : null;
 

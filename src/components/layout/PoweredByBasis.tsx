@@ -1,5 +1,5 @@
 // Footer de branding na sidebar do vault. Texto discreto que linka
-// para o site oficial do Sec.Basis (parte da família BasisApp).
+// para o site oficial do Lupo (parte da família BasisApp).
 //
 // Sessão 21: posicionado no fundo da `<aside>` da `GroupSidebar`.
 // O posicionamento é responsabilidade do `GroupSidebar`: o `<aside>`
@@ -14,9 +14,9 @@ export function PoweredByBasis() {
   return (
     <button
       type="button"
-      onClick={() => void openExternalSafe("https://sec.basis.app.br")}
+      onClick={() => void openExternalSafe("https://lupo.basis.app.br")}
       className="w-full px-3 py-2 text-left text-xs text-muted-foreground hover:text-foreground transition-colors"
-      aria-label="Visitar sec.basis.app.br"
+      aria-label="Visitar lupo.basis.app.br"
     >
       Powered by <span className="font-medium">BasisApp</span>
     </button>

@@ -6,11 +6,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /* =============================================================================
-   Sistema de tema do Sec.Basis
+   Sistema de tema do Lupo
    -----------------------------------------------------------------------------
    Duas camadas de tokens, propositalmente:
 
-   1. Tokens "crus" do Sec.Basis (--bg, --brand-primary, --success, etc.)
+   1. Tokens "crus" do Lupo (--bg, --brand-primary, --success, etc.)
       definidos pela identidade visual cravada na sessão 2.
    2. Tokens convencionais do shadcn/ui (--background, --primary, --destructive,
       etc.) montados em cima dos crus. Isso permite que componentes shadcn
@@ -19,12 +19,12 @@
    Convenção de uso na UI: prefira as classes Tailwind no padrão shadcn
    (bg-background, text-foreground, bg-primary, bg-muted, text-muted-foreground,
    border-border, text-destructive, ring-ring) — elas já resolvem para nossa
-   paleta. As classes específicas do Sec.Basis (bg-brand-accent, bg-success,
+   paleta. As classes específicas do Lupo (bg-brand-accent, bg-success,
    etc.) ficam reservadas para destaques/semânticas que o shadcn não cobre.
    ============================================================================= */
 
 :root {
-  /* ----- Camada 1 — tokens crus do Sec.Basis ----- */
+  /* ----- Camada 1 — tokens crus do Lupo ----- */
 
   /* Marca */
   --brand-primary: #4eb1d9;        /* azul Sec — ações, foco, links */
@@ -138,7 +138,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* Tokens específicos do Sec.Basis — geram bg-brand-accent, bg-brand-soft,
+  /* Tokens específicos do Lupo — geram bg-brand-accent, bg-brand-soft,
      bg-success, text-warning, etc. Usar para destaques/semânticas que o
      shadcn não cobre. */
   --color-brand-primary: var(--brand-primary);

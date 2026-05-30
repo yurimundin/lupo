@@ -1,8 +1,8 @@
 import type { Kdbx, KdbxGroup } from "kdbxweb";
 
 import {
-  SEC_BASIS_GROUP_ICON_COLOR_KEY,
-  SEC_BASIS_GROUP_ICON_KEY,
+  LUPO_GROUP_ICON_COLOR_KEYS,
+  LUPO_GROUP_ICON_KEYS,
   setGroupIconColorId,
   setGroupLucideIconId,
   type GroupIconColorId,
@@ -25,7 +25,7 @@ export type SetGroupVisualIconResult =
   | { ok: false; error: string };
 
 /**
- * Salva o icone visual Sec.Basis em `customData` do grupo.
+ * Salva o icone visual Lupo em `customData` do grupo.
  *
  * Isso nao altera o `IconID` nativo do KeePass: clientes KeePass continuam
  * abrindo o cofre normalmente e ignoram esse metadado especifico do app.
@@ -42,8 +42,14 @@ export async function setGroupVisualIconInVault(
   }
 
   const hadCustomData = !!group.customData;
-  const oldIconItem = group.customData?.get(SEC_BASIS_GROUP_ICON_KEY);
-  const oldColorItem = group.customData?.get(SEC_BASIS_GROUP_ICON_COLOR_KEY);
+  const oldIconItems = snapshotGroupCustomDataItems(
+    group,
+    LUPO_GROUP_ICON_KEYS,
+  );
+  const oldColorItems = snapshotGroupCustomDataItems(
+    group,
+    LUPO_GROUP_ICON_COLOR_KEYS,
+  );
 
   try {
     setGroupLucideIconId(group, iconId);
@@ -54,8 +60,8 @@ export async function setGroupVisualIconInVault(
     if (!result.ok) {
       restoreGroupVisualCustomData(group, {
         hadCustomData,
-        oldIconItem,
-        oldColorItem,
+        oldIconItems,
+        oldColorItems,
       });
       return { ok: false, error: result.error };
     }
@@ -64,8 +70,8 @@ export async function setGroupVisualIconInVault(
   } catch (e) {
     restoreGroupVisualCustomData(group, {
       hadCustomData,
-      oldIconItem,
-      oldColorItem,
+      oldIconItems,
+      oldColorItems,
     });
     return {
       ok: false,
@@ -78,8 +84,8 @@ function restoreGroupVisualCustomData(
   group: KdbxGroup,
   snapshot: {
     hadCustomData: boolean;
-    oldIconItem: KdbxGroupCustomDataItem | undefined;
-    oldColorItem: KdbxGroupCustomDataItem | undefined;
+    oldIconItems: Map<string, KdbxGroupCustomDataItem>;
+    oldColorItems: Map<string, KdbxGroupCustomDataItem>;
   },
 ): void {
   if (!snapshot.hadCustomData) {
@@ -87,19 +93,34 @@ function restoreGroupVisualCustomData(
     return;
   }
 
-  if (snapshot.oldIconItem) {
-    group.customData?.set(SEC_BASIS_GROUP_ICON_KEY, snapshot.oldIconItem);
-  } else {
-    group.customData?.delete(SEC_BASIS_GROUP_ICON_KEY);
+  group.customData ??= new Map();
+  for (const key of LUPO_GROUP_ICON_KEYS) {
+    const item = snapshot.oldIconItems.get(key);
+    if (item) {
+      group.customData.set(key, item);
+    } else {
+      group.customData.delete(key);
+    }
   }
 
-  if (snapshot.oldColorItem) {
-    group.customData?.set(
-      SEC_BASIS_GROUP_ICON_COLOR_KEY,
-      snapshot.oldColorItem,
-    );
-  } else {
-    group.customData?.delete(SEC_BASIS_GROUP_ICON_COLOR_KEY);
+  for (const key of LUPO_GROUP_ICON_COLOR_KEYS) {
+    const item = snapshot.oldColorItems.get(key);
+    if (item) {
+      group.customData.set(key, item);
+    } else {
+      group.customData.delete(key);
+    }
   }
 }
 
+function snapshotGroupCustomDataItems(
+  group: KdbxGroup,
+  keys: readonly string[],
+): Map<string, KdbxGroupCustomDataItem> {
+  const snapshot = new Map<string, KdbxGroupCustomDataItem>();
+  for (const key of keys) {
+    const item = group.customData?.get(key);
+    if (item) snapshot.set(key, item);
+  }
+  return snapshot;
+}

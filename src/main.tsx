@@ -26,7 +26,7 @@ initKdbxweb();
 // - Em release: roda apenas se a env var `VITE_RUN_SMOKE=1` foi passada
 //   no build. Útil pra benchmark de Argon2 em release sem precisar de
 //   código de bench dedicado. Resultados aparecem no console do DevTools
-//   (se habilitado) e no arquivo `%TEMP%/sec-basis-bench.log` (gravado
+//   (se habilitado) e no arquivo `%TEMP%/lupo-bench.log` (gravado
 //   pelo comando Tauri `log_smoke_result`).
 const SHOULD_RUN_SMOKE =
   import.meta.env.DEV || import.meta.env.VITE_RUN_SMOKE === "1";

@@ -171,7 +171,7 @@ describe("kdbx entry helpers", () => {
     expect(db.deletedObjects).toEqual([{ uuid: "old" }]);
   });
 
-  it("stores a Sec.Basis favorite marker on an entry", async () => {
+  it("stores a Lupo favorite marker on an entry", async () => {
     const { db, root } = makeDb();
     const item = entry("entry");
     attachEntry(root, item);
@@ -184,7 +184,7 @@ describe("kdbx entry helpers", () => {
     );
 
     expect(result).toEqual({ ok: true, durationMs: 12 });
-    expect(item.customData?.get("sec.basis.entryFavorite")?.value).toBe("true");
+    expect(item.customData?.get("lupo.entryFavorite")?.value).toBe("true");
     expect(item.times.update).toHaveBeenCalled();
   });
 
@@ -192,7 +192,7 @@ describe("kdbx entry helpers", () => {
     const { db, root } = makeDb();
     const item = entry("entry");
     item.customData = new Map([
-      ["sec.basis.entryFavorite", { value: "true", lastModified: new Date(0) }],
+      ["lupo.entryFavorite", { value: "true", lastModified: new Date(0) }],
     ]);
     attachEntry(root, item);
     invokeMock.mockRejectedValue("save falhou");
@@ -205,6 +205,6 @@ describe("kdbx entry helpers", () => {
     );
 
     expect(result).toEqual({ ok: false, error: "save falhou" });
-    expect(item.customData.get("sec.basis.entryFavorite")?.value).toBe("true");
+    expect(item.customData.get("lupo.entryFavorite")?.value).toBe("true");
   });
 });

@@ -72,7 +72,7 @@ export function GroupIconDialog({
           <DialogTitle>Alterar ícone e cor</DialogTitle>
           <DialogDescription>
             Escolha uma aparência visual para identificar esta pasta no
-            Sec.Basis.
+            Lupo.
           </DialogDescription>
         </DialogHeader>
 

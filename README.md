@@ -1,4 +1,4 @@
-# Sec.Basis
+# Lupo
 
 > Gerenciador de senhas desktop, leve e moderno, 100% offline e compatível
 > com o formato `.kdbx` do KeePass.
@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-blue)]()
 
-## Por que o Sec.Basis?
+## Por que o Lupo?
 
 Os gerenciadores de senha atuais forçam um trade-off ruim:
 
@@ -16,7 +16,7 @@ Os gerenciadores de senha atuais forçam um trade-off ruim:
 - **1Password / Bitwarden** têm UX moderna, mas são pesados, dependem de
   conta na nuvem e cobram assinatura para os recursos relevantes.
 
-O **Sec.Basis** preenche essa lacuna com:
+O **Lupo** preenche essa lacuna com:
 
 - **Segurança auditada** do formato `.kdbx` (via [kdbxweb](https://github.com/keeweb/kdbxweb)).
 - **Interface moderna** baseada em React + Tailwind + shadcn/ui.
@@ -46,7 +46,7 @@ ampla ainda aguarda assinatura de código, auto-update e mais validação de cam
 
 ## Site oficial
 
-🌐 [sec.basis.app.br](https://sec.basis.app.br/)
+🌐 [lupo.basis.app.br](https://lupo.basis.app.br/)
 
 Documentação de usuário, downloads (em breve) e conteúdo institucional
 ficam no site. Este repositório é o código-fonte e documentação técnica.
@@ -74,8 +74,8 @@ ficam no site. Este repositório é o código-fonte e documentação técnica.
 ### Instalação
 
 ```bash
-git clone https://github.com/yurimundin/secbasis.git
-cd secbasis
+git clone https://github.com/yurimundin/lupo.git
+cd lupo
 npm install
 npm run tauri dev
 ```
@@ -112,7 +112,7 @@ Princípios de design que guiam o projeto:
   o app só interrompe o fluxo quando encontra `.tmp` pendente ou um cofre
   atual inconsistente com backup válido.
 - **Metadados visuais compatíveis.** Ícones e cores de pastas são salvos como
-  metadados próprios do Sec.Basis; KeePass/KeePassXC ignoram esses dados e
+  metadados próprios do Lupo; KeePass/KeePassXC ignoram esses dados e
   continuam abrindo o mesmo `.kdbx` normalmente.
 - **Superfície Tauri mínima.** CSP restritiva, sem permissões Shell amplas;
   links externos passam pelo plugin Opener com protocolos permitidos.
@@ -128,7 +128,7 @@ Princípios de design que guiam o projeto:
   - ✅ Persistência atômica com backup `.kdbx.bak`
   - ✅ Ciclo de vida completo da Lixeira (mover, restaurar, esvaziar — compatível com KeePass)
   - ✅ Mover entradas entre pastas por drag and drop e diálogo "Mover para pasta..."
-  - ✅ Favoritos de entradas persistidos no `.kdbx` via metadados Sec.Basis
+  - ✅ Favoritos de entradas persistidos no `.kdbx` via metadados Lupo
   - ✅ Auto-open do último cofre usado (estilo KeePass — pré-preenche path, senha sempre exigida)
   - ✅ Tela "Sobre" com versão e links (acessível pelo botão Info no header)
   - ✅ Subgrupos expansíveis na sidebar (hierarquia recursiva, persistência por cofre)
@@ -154,9 +154,9 @@ Detalhes em [`CLAUDE.md`](CLAUDE.md).
 
 ## Sobre a marca
 
-**Sec.Basis** pertence à família de produtos sob o domínio `basis.app.br`.
+**Lupo** pertence à família de produtos sob o domínio `basis.app.br`.
 Outros produtos da família estão em planejamento; o foco atual é estabilizar
-o Sec.Basis primeiro.
+o Lupo primeiro.
 
 ## Contribuindo
 

@@ -1,4 +1,4 @@
-// Modal "Sobre o Sec.Basis" — informações estáticas do produto.
+// Modal "Sobre o Lupo" — informações estáticas do produto.
 //
 // Acessível pelo botão Info no header do cofre. Conteúdo: logo, nome,
 // versão (via Tauri), descrição curta, links externos para site/repo
@@ -28,8 +28,8 @@ interface AboutDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const SITE_URL = "https://sec.basis.app.br";
-const REPO_URL = "https://github.com/yurimundin/secbasis";
+const SITE_URL = "https://lupo.basis.app.br";
+const REPO_URL = "https://github.com/yurimundin/lupo";
 const ARGO_URL = "https://argo.basis.app.br";
 
 export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
@@ -40,11 +40,11 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader className="items-center text-center">
           <img
-            src="/secbasis-logo.png"
-            alt="Sec.Basis logo"
+            src="/lupo-appicon-steel.svg"
+            alt="Lupo logo"
             className="w-16 h-16 mb-2"
           />
-          <DialogTitle className="text-2xl">Sec.Basis</DialogTitle>
+          <DialogTitle className="text-2xl">Lupo</DialogTitle>
           <DialogDescription className="text-sm">
             Versão {version || "..."}
           </DialogDescription>
@@ -63,7 +63,7 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
                 onClick={() => void openExternalSafe(SITE_URL)}
                 className="text-primary hover:underline"
               >
-                sec.basis.app.br
+                lupo.basis.app.br
               </button>
             </div>
             <div className="flex items-center justify-between">
@@ -73,7 +73,7 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
                 onClick={() => void openExternalSafe(REPO_URL)}
                 className="text-primary hover:underline"
               >
-                github.com/yurimundin/secbasis
+                github.com/yurimundin/lupo
               </button>
             </div>
             <div className="flex items-center justify-between">

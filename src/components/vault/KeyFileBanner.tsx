@@ -115,7 +115,7 @@ export function KeyFileBanner() {
               </h3>
               <p className="text-muted-foreground">
                 <strong>O cofre é perdido.</strong> Não temos como recuperá-lo
-                — a Sec.Basis não armazena nenhuma cópia do key file, e o
+                — a Lupo não armazena nenhuma cópia do key file, e o
                 conteúdo é cifrado de forma que mesmo nós não conseguiríamos
                 descriptografar. Se este risco te assusta, considere usar o
                 cofre apenas com senha (sem key file).

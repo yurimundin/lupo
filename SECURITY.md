@@ -2,14 +2,14 @@
 
 ## ⚠️ Status do projeto
 
-Sec.Basis está em desenvolvimento ativo e ainda **não passou por auditoria
-de segurança independente**. NÃO use Sec.Basis para armazenar senhas reais
+Lupo está em desenvolvimento ativo e ainda **não passou por auditoria
+de segurança independente**. NÃO use Lupo para armazenar senhas reais
 até o primeiro release estável e auditado. Para uso em produção,
 recomendamos [KeePassXC](https://keepassxc.org/).
 
 ## Reportando vulnerabilidades
 
-Se você descobriu uma vulnerabilidade de segurança no Sec.Basis,
+Se você descobriu uma vulnerabilidade de segurança no Lupo,
 **NÃO abra uma issue pública**. Reporte de forma responsável:
 
 - **E-mail:** security@basis.app.br
@@ -32,7 +32,7 @@ Se você descobriu uma vulnerabilidade de segurança no Sec.Basis,
 
 - Usuário escolher senha mestra fraca (responsabilidade do usuário).
 - Usuário perder o key file (comportamento documentado — sem key file, sem cofre).
-- Comprometimento do sistema operacional do usuário (fora do escopo do Sec.Basis).
+- Comprometimento do sistema operacional do usuário (fora do escopo do Lupo).
 - Vulnerabilidades teóricas em algoritmos sem prova de exploração.
 
 ## Reconhecimento
@@ -46,14 +46,14 @@ hall of fame (em breve), salvo solicitação explícita de anonimato.
 
 ## ⚠️ Project status
 
-Sec.Basis is under active development and **has not yet undergone an
-independent security audit**. DO NOT use Sec.Basis to store real
+Lupo is under active development and **has not yet undergone an
+independent security audit**. DO NOT use Lupo to store real
 passwords until the first stable, audited release. For production use,
 we recommend [KeePassXC](https://keepassxc.org/).
 
 ## Reporting vulnerabilities
 
-If you discovered a security vulnerability in Sec.Basis, **DO NOT open a
+If you discovered a security vulnerability in Lupo, **DO NOT open a
 public issue**. Report it responsibly:
 
 - **Email:** security@basis.app.br
@@ -76,7 +76,7 @@ public issue**. Report it responsibly:
 
 - User choosing a weak master password (user responsibility).
 - User losing the key file (documented behavior — no key file, no vault).
-- Compromise of the user's operating system (out of scope for Sec.Basis).
+- Compromise of the user's operating system (out of scope for Lupo).
 - Theoretical algorithm vulnerabilities without proof of exploitation.
 
 ## Recognition

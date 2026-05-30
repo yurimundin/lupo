@@ -2,7 +2,7 @@
 //
 // Diferenças em relação a `useDeleteEntry` / `useRestoreEntry`:
 //   - Confirmação OBRIGATÓRIA com lembrete explícito de fazer backup
-//     externo do `.kdbx` antes (Sec.Basis NÃO tem rollback após esvaziar).
+//     externo do `.kdbx` antes (Lupo NÃO tem rollback após esvaziar).
 //   - Recebe `entryCount` como argumento porque o título do dialog precisa
 //     dele dinamicamente — e o componente chamador (`EntryList`) já tem o
 //     número via `useEntriesOfCurrentGroup().length`. Evita o hook
@@ -51,7 +51,7 @@ export function useEmptyRecycleBin(): (entryCount: number) => Promise<boolean> {
 
       const confirmed = await confirmDialog({
         title: `Apagar permanentemente ${entryCount} ${noun}?`,
-        description: `Esta ação não pode ser desfeita pelo Sec.Basis. Se você precisa de backup, faça uma cópia do arquivo .kdbx antes de continuar. As entradas atuais permanecem na Lixeira até você confirmar.`,
+        description: `Esta ação não pode ser desfeita pelo Lupo. Se você precisa de backup, faça uma cópia do arquivo .kdbx antes de continuar. As entradas atuais permanecem na Lixeira até você confirmar.`,
         confirmLabel: "Apagar permanentemente",
         cancelLabel: "Cancelar",
         variant: "danger",

@@ -1,7 +1,7 @@
 import type { Kdbx, KdbxEntry, KdbxGroup } from "kdbxweb";
 
 import {
-  SEC_BASIS_ENTRY_FAVORITE_KEY,
+  LUPO_ENTRY_FAVORITE_KEYS,
   setEntryFavorite,
 } from "../entry-helpers";
 import { applyEditableFields, type EntryEditableFields } from "./entry-fields";
@@ -100,9 +100,10 @@ export async function setEntryFavoriteInVault(
 
   const snapshot = {
     hadCustomData: !!entry.customData,
-    oldFavoriteItem: entry.customData?.get(SEC_BASIS_ENTRY_FAVORITE_KEY) as
-      | KdbxEntryCustomDataItem
-      | undefined,
+    oldFavoriteItems: snapshotEntryCustomDataItems(
+      entry,
+      LUPO_ENTRY_FAVORITE_KEYS,
+    ),
   };
 
   try {
@@ -129,7 +130,7 @@ function restoreEntryFavoriteSnapshot(
   entry: KdbxEntry,
   snapshot: {
     hadCustomData: boolean;
-    oldFavoriteItem: KdbxEntryCustomDataItem | undefined;
+    oldFavoriteItems: Map<string, KdbxEntryCustomDataItem>;
   },
 ): void {
   if (!snapshot.hadCustomData) {
@@ -138,14 +139,28 @@ function restoreEntryFavoriteSnapshot(
   }
 
   entry.customData ??= new Map();
-  if (snapshot.oldFavoriteItem) {
-    entry.customData.set(
-      SEC_BASIS_ENTRY_FAVORITE_KEY,
-      snapshot.oldFavoriteItem,
-    );
-  } else {
-    entry.customData.delete(SEC_BASIS_ENTRY_FAVORITE_KEY);
+  for (const key of LUPO_ENTRY_FAVORITE_KEYS) {
+    const item = snapshot.oldFavoriteItems.get(key);
+    if (item) {
+      entry.customData.set(key, item);
+    } else {
+      entry.customData.delete(key);
+    }
   }
+}
+
+function snapshotEntryCustomDataItems(
+  entry: KdbxEntry,
+  keys: readonly string[],
+): Map<string, KdbxEntryCustomDataItem> {
+  const snapshot = new Map<string, KdbxEntryCustomDataItem>();
+  for (const key of keys) {
+    const item = entry.customData?.get(key) as
+      | KdbxEntryCustomDataItem
+      | undefined;
+    if (item) snapshot.set(key, item);
+  }
+  return snapshot;
 }
 
 /**
@@ -223,7 +238,7 @@ export async function moveEntryToGroup(
  *
  * Soft-delete (não hard-delete) é a escolha porque:
  *   1. Compatibilidade total com KeePass/KeePassXC: lixeira gerada/movida
- *      no Sec.Basis aparece nos outros clientes do ecossistema.
+ *      no Lupo aparece nos outros clientes do ecossistema.
  *   2. UX padrão do KeePass há décadas — usuário pode restaurar entradas
  *      deletadas por engano.
  *   3. MVP atual não implementa restaurar/esvaziar (Sessão 5+); isso é OK
@@ -398,7 +413,7 @@ export type EmptyRecycleBinResult =
 
 /**
  * Apaga permanentemente todas as entries do grupo Lixeira (RecycleBin)
- * — hard-delete, sem possibilidade de restauração pelo Sec.Basis.
+ * — hard-delete, sem possibilidade de restauração pelo Lupo.
  *
  * Mecânica: itera `kdbx.move(entry, undefined)` em cada entry da
  * Lixeira (ver detalhe da escolha da API logo abaixo, dentro da função).

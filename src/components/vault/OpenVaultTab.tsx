@@ -210,7 +210,7 @@ export function OpenVaultTab() {
       // boot (ver §24 do CLAUDE.md).
       useSettingsStore.getState().setLastOpenedVaultPath(filePath);
 
-      console.info("[Sec.Basis] cofre aberto:", fileName, db.meta.name);
+      console.info("[Lupo] cofre aberto:", fileName, db.meta.name);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       setError(message);

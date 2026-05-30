@@ -1,5 +1,5 @@
 {
-  "name": "sec-basis",
+  "name": "lupo",
   "private": true,
   "version": "0.1.5",
   "description": "Gerenciador de senhas desktop, leve e offline-first, compatível com .kdbx (KeePass).",

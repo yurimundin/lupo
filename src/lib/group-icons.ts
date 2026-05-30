@@ -25,8 +25,18 @@ import {
 
 import type { KdbxGroup } from "kdbxweb";
 
-export const SEC_BASIS_GROUP_ICON_KEY = "sec.basis.groupIcon";
-export const SEC_BASIS_GROUP_ICON_COLOR_KEY = "sec.basis.groupIconColor";
+export const LUPO_GROUP_ICON_KEY = "lupo.groupIcon";
+export const LUPO_GROUP_ICON_COLOR_KEY = "lupo.groupIconColor";
+export const LEGACY_LUPO_GROUP_ICON_KEY = "sec.basis.groupIcon";
+export const LEGACY_LUPO_GROUP_ICON_COLOR_KEY = "sec.basis.groupIconColor";
+export const LUPO_GROUP_ICON_KEYS = [
+  LUPO_GROUP_ICON_KEY,
+  LEGACY_LUPO_GROUP_ICON_KEY,
+] as const;
+export const LUPO_GROUP_ICON_COLOR_KEYS = [
+  LUPO_GROUP_ICON_COLOR_KEY,
+  LEGACY_LUPO_GROUP_ICON_COLOR_KEY,
+] as const;
 
 export const GROUP_ICON_OPTIONS = [
   { id: "folder", label: "Pasta", icon: Folder },
@@ -139,13 +149,13 @@ export function getGroupLucideIconId(
   group: KdbxGroup,
 ): GroupLucideIconId | null {
   return normalizeGroupLucideIconId(
-    group.customData?.get(SEC_BASIS_GROUP_ICON_KEY)?.value,
+    getFirstCustomDataValue(group, LUPO_GROUP_ICON_KEYS),
   );
 }
 
 export function getGroupIconColorId(group: KdbxGroup): GroupIconColorId | null {
   return normalizeGroupIconColorId(
-    group.customData?.get(SEC_BASIS_GROUP_ICON_COLOR_KEY)?.value,
+    getFirstCustomDataValue(group, LUPO_GROUP_ICON_COLOR_KEYS),
   );
 }
 
@@ -154,12 +164,15 @@ export function setGroupLucideIconId(
   iconId: GroupLucideIconId | null,
 ): void {
   if (!iconId) {
-    group.customData?.delete(SEC_BASIS_GROUP_ICON_KEY);
+    for (const key of LUPO_GROUP_ICON_KEYS) {
+      group.customData?.delete(key);
+    }
     return;
   }
 
   group.customData ??= new Map();
-  group.customData.set(SEC_BASIS_GROUP_ICON_KEY, {
+  group.customData.delete(LEGACY_LUPO_GROUP_ICON_KEY);
+  group.customData.set(LUPO_GROUP_ICON_KEY, {
     value: iconId,
     lastModified: new Date(),
   });
@@ -170,13 +183,27 @@ export function setGroupIconColorId(
   colorId: GroupIconColorId | null,
 ): void {
   if (!colorId || colorId === "default") {
-    group.customData?.delete(SEC_BASIS_GROUP_ICON_COLOR_KEY);
+    for (const key of LUPO_GROUP_ICON_COLOR_KEYS) {
+      group.customData?.delete(key);
+    }
     return;
   }
 
   group.customData ??= new Map();
-  group.customData.set(SEC_BASIS_GROUP_ICON_COLOR_KEY, {
+  group.customData.delete(LEGACY_LUPO_GROUP_ICON_COLOR_KEY);
+  group.customData.set(LUPO_GROUP_ICON_COLOR_KEY, {
     value: colorId,
     lastModified: new Date(),
   });
+}
+
+function getFirstCustomDataValue(
+  group: KdbxGroup,
+  keys: readonly string[],
+): string | undefined {
+  for (const key of keys) {
+    const value = group.customData?.get(key)?.value;
+    if (value) return value;
+  }
+  return undefined;
 }

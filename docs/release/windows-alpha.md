@@ -1,6 +1,6 @@
 # Release alpha Windows
 
-Este documento descreve o fluxo manual de distribuição alpha do Sec.Basis para
+Este documento descreve o fluxo manual de distribuição alpha do Lupo para
 testers conhecidos.
 
 ## Escopo da alpha

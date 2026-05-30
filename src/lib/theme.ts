@@ -1,13 +1,13 @@
-// Sistema de tema do Sec.Basis.
+// Sistema de tema do Lupo.
 //
 // Resolve a preferência efetiva (light/dark) a partir de:
-//   1. Override manual do usuário (localStorage `sec-basis-theme`)
+//   1. Override manual do usuário (localStorage `lupo-theme`)
 //   2. Caso contrário, segue `prefers-color-scheme` do SO
 //
 // A preferência efetiva é aplicada como classe `.dark` no <html> (convenção
 // do shadcn/ui, que será adicionado na próxima tarefa).
 
-const STORAGE_KEY = "sec-basis-theme";
+const STORAGE_KEY = "lupo-theme";
 
 export type ThemePreference = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";

@@ -9,7 +9,7 @@ describe("kdbx group visual helpers", () => {
     invokeMock.mockResolvedValue(12);
   });
 
-  it("stores a Sec.Basis visual group icon without changing KeePass icon ids", async () => {
+  it("stores a Lupo visual group icon without changing KeePass icon ids", async () => {
     const { db, root } = makeDb();
 
     const result = await setGroupVisualIconInVault(
@@ -21,8 +21,8 @@ describe("kdbx group visual helpers", () => {
     );
 
     expect(result).toEqual({ ok: true, durationMs: 12 });
-    expect(root.customData?.get("sec.basis.groupIcon")?.value).toBe("shield");
-    expect(root.customData?.get("sec.basis.groupIconColor")?.value).toBe(
+    expect(root.customData?.get("lupo.groupIcon")?.value).toBe("shield");
+    expect(root.customData?.get("lupo.groupIconColor")?.value).toBe(
       "green",
     );
     expect(root.times.update).toHaveBeenCalled();
@@ -32,8 +32,8 @@ describe("kdbx group visual helpers", () => {
   it("rolls the previous visual group icon back when saving fails", async () => {
     const { db, root } = makeDb();
     root.customData = new Map([
-      ["sec.basis.groupIcon", { value: "home", lastModified: new Date(0) }],
-      ["sec.basis.groupIconColor", { value: "blue", lastModified: new Date(0) }],
+      ["lupo.groupIcon", { value: "home", lastModified: new Date(0) }],
+      ["lupo.groupIconColor", { value: "blue", lastModified: new Date(0) }],
     ]);
     invokeMock.mockRejectedValue("save falhou");
 
@@ -46,7 +46,7 @@ describe("kdbx group visual helpers", () => {
     );
 
     expect(result).toEqual({ ok: false, error: "save falhou" });
-    expect(root.customData.get("sec.basis.groupIcon")?.value).toBe("home");
-    expect(root.customData.get("sec.basis.groupIconColor")?.value).toBe("blue");
+    expect(root.customData.get("lupo.groupIcon")?.value).toBe("home");
+    expect(root.customData.get("lupo.groupIconColor")?.value).toBe("blue");
   });
 });
