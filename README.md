@@ -139,6 +139,7 @@ Princípios de design que guiam o projeto:
   - ✅ Anexos em entradas KDBX, com adicionar, salvar como e remover
   - ✅ Histórico de alterações de entradas, com comparação, copiar senha antiga,
     restaurar/apagar versão e retenção automática de 20 versões por entrada
+    (campos principais: título, usuário, senha, URL e notas)
   - ✅ Empacotamento Windows manual (instaladores `.msi` e `.exe` via Tauri)
   - ✅ Suíte unitária inicial (Vitest + CI)
   - ✅ Motor offline de força/auditoria de senhas

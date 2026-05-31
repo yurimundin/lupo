@@ -22,16 +22,18 @@ import { openUrl } from "@tauri-apps/plugin-opener";
  *     Abrir
  *   </button>
  */
-export async function openExternalSafe(url: string): Promise<void> {
+export async function openExternalSafe(url: string): Promise<boolean> {
   if (!isAllowedExternalUrl(url)) {
     console.warn("[opener.openUrl] URL externa bloqueada:", url);
-    return;
+    return false;
   }
 
   try {
     await openUrl(url);
+    return true;
   } catch (err) {
     console.error("[opener.openUrl] falhou:", err);
+    return false;
   }
 }
 

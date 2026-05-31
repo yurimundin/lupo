@@ -141,7 +141,11 @@ Objetivo: virar uma alternativa real a KeePassXC.
 - [ ] Suporte a key file + YubiKey (challenge-response) para desbloqueio.
 - [ ] Campos personalizados e anexos em entradas.
 - [ ] TOTP (geração de códigos 2FA, igual ao KeePassXC).
-- [ ] Histórico de senhas por entrada.
+- [x] Histórico de alterações/senhas por entrada: edições de título,
+      usuário, senha, URL e notas criam versões nativas em `entry.history`,
+      com comparação, restauração, exclusão e retenção automática de 20
+      versões. Movimentação de pasta, favorito, anexos e duplicação ainda
+      não entram nesse histórico.
 - [ ] Lixeira interna (soft-delete) com restauração.
 - [ ] Importação a partir de Bitwarden, 1Password, LastPass (CSV/JSON).
 - [ ] Ações guiadas a partir da auditoria (navegar para entrada, filtrar por

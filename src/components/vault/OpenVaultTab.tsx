@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { CapsLockWarning } from "@/components/CapsLockWarning";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,6 +34,7 @@ import {
   inspectVaultRecovery,
   type VaultRecoveryState,
 } from "@/lib/fs";
+import { useCapsLockWarning } from "@/hooks/useCapsLockWarning";
 import { openVault } from "@/lib/kdbx";
 import { canRestoreBackup, shouldShowRecoveryPrompt } from "@/lib/vault-recovery";
 import { useSettingsStore } from "@/stores/settings";
@@ -45,6 +47,7 @@ export function OpenVaultTab() {
   const [filePath, setFilePath] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const passwordCapsLock = useCapsLockWarning();
 
   const [useKeyFile, setUseKeyFile] = useState(false);
   const [keyFilePath, setKeyFilePath] = useState<string | null>(null);
@@ -284,6 +287,7 @@ export function OpenVaultTab() {
                 autoComplete="current-password"
                 disabled={busy}
                 className="pr-10"
+                {...passwordCapsLock.inputProps}
               />
               <button
                 type="button"
@@ -295,6 +299,7 @@ export function OpenVaultTab() {
                 {showPassword ? <EyeOff /> : <Eye />}
               </button>
             </div>
+            <CapsLockWarning visible={passwordCapsLock.capsLockOn} />
           </div>
 
           <div className="space-y-2">

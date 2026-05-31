@@ -1,4 +1,5 @@
 import {
+  CopyPlus,
   FolderInput,
   History,
   Pencil,
@@ -18,11 +19,13 @@ interface EntryDetailHeaderProps {
   favoriting: boolean;
   inRecycleBin: boolean;
   restoring: boolean;
+  duplicating: boolean;
   historyCount: number;
   canMove: boolean;
   onOpenHistory: () => void;
   onRestore: () => void;
   onToggleFavorite: () => void;
+  onDuplicate: () => void;
   onEdit: () => void;
   onMove: () => void;
   onDelete: () => void;
@@ -36,11 +39,13 @@ export function EntryDetailHeader({
   favoriting,
   inRecycleBin,
   restoring,
+  duplicating,
   historyCount,
   canMove,
   onOpenHistory,
   onRestore,
   onToggleFavorite,
+  onDuplicate,
   onEdit,
   onMove,
   onDelete,
@@ -106,6 +111,17 @@ export function EntryDetailHeader({
               className={cn(favorite && "text-amber-500 hover:text-amber-500")}
             >
               <Star className={cn(favorite && "fill-current")} />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onDuplicate}
+              disabled={duplicating}
+              title="Duplicar entrada"
+              aria-label="Duplicar entrada"
+            >
+              <CopyPlus />
             </Button>
             <Button
               type="button"

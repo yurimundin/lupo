@@ -13,6 +13,7 @@ import {
 } from "./kdbx-test-utils";
 import {
   createEntryInVault,
+  duplicateEntryInVault,
   emptyRecycleBin,
   moveEntryToGroup,
   moveEntryToRecycleBin,
@@ -71,6 +72,71 @@ describe("kdbx entry helpers", () => {
 
     expect(result).toEqual({ ok: false, error: "save falhou" });
     expect(root.entries).toHaveLength(0);
+  });
+
+  it("duplicates an entry into the same group with cloned fields and a copy title", async () => {
+    const { db, root } = makeDb();
+    const item = entry("github");
+    const password = {
+      clone: vi.fn(() => ({ marker: "cloned-password" })),
+      getText: vi.fn(() => "secret"),
+    };
+    item.fields = new Map<string, unknown>([
+      ["Title", "GitHub"],
+      ["UserName", "octo"],
+      ["Password", password],
+      ["URL", "https://github.com"],
+      ["Notes", "2FA"],
+      ["Custom", "extra"],
+    ]);
+    item.binaries = new Map([
+      ["recovery.txt", { hash: "hash-1", value: new ArrayBuffer(2) }],
+    ]);
+    item.customData = new Map([
+      ["lupo.entryFavorite", { value: "true", lastModified: new Date(0) }],
+    ]);
+    attachEntry(root, item);
+
+    const result = await duplicateEntryInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(root.entries).toHaveLength(2);
+    const copy = root.entries[1];
+    expect(copy).not.toBe(item);
+    expect(copy.parentGroup).toBe(root);
+    expect(copy.fields.get("Title")).toBe("GitHub (cópia)");
+    expect(copy.fields.get("UserName")).toBe("octo");
+    expect(copy.fields.get("URL")).toBe("https://github.com");
+    expect(copy.fields.get("Notes")).toBe("2FA");
+    expect(copy.fields.get("Custom")).toBe("extra");
+    expect(copy.fields.get("Password")).toEqual({ marker: "cloned-password" });
+    expect(password.clone).toHaveBeenCalledOnce();
+    expect(copy.binaries).toEqual(item.binaries);
+    expect(copy.binaries).not.toBe(item.binaries);
+    expect(copy.customData).toEqual(item.customData);
+    expect(copy.customData).not.toBe(item.customData);
+    expect(copy.times.update).toHaveBeenCalled();
+  });
+
+  it("rolls a duplicated entry back when saving fails", async () => {
+    const { db, root } = makeDb();
+    const item = entry("github");
+    item.fields.set("Title", "GitHub");
+    attachEntry(root, item);
+    invokeMock.mockRejectedValue("save falhou");
+
+    const result = await duplicateEntryInVault(
+      "C:/vault.kdbx",
+      asDb(db),
+      asEntry(item),
+    );
+
+    expect(result).toEqual({ ok: false, error: "save falhou" });
+    expect(root.entries).toEqual([item]);
   });
 
   it("rolls an entry back to its original group when moving to trash fails", async () => {

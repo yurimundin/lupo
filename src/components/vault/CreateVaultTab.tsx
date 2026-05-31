@@ -24,12 +24,14 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { CapsLockWarning } from "@/components/CapsLockWarning";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { useCapsLockWarning } from "@/hooks/useCapsLockWarning";
 import { createVault, generateKeyFile, writeNewVaultFile } from "@/lib/kdbx";
 import {
   computePasswordStrength,
@@ -61,6 +63,8 @@ export function CreateVaultTab() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const passwordCapsLock = useCapsLockWarning();
+  const confirmCapsLock = useCapsLockWarning();
 
   const [useKeyFile, setUseKeyFile] = useState(false);
   const [keyFileMode, setKeyFileMode] = useState<KeyFileMode>("generate");
@@ -234,6 +238,7 @@ export function CreateVaultTab() {
             autoComplete="new-password"
             disabled={busy}
             className="pr-10"
+            {...passwordCapsLock.inputProps}
           />
           <button
             type="button"
@@ -245,6 +250,7 @@ export function CreateVaultTab() {
             {showPassword ? <EyeOff /> : <Eye />}
           </button>
         </div>
+        <CapsLockWarning visible={passwordCapsLock.capsLockOn} />
         {password.length > 0 && (
           <div className="space-y-1.5 pt-1">
             <Progress
@@ -268,7 +274,9 @@ export function CreateVaultTab() {
           onChange={(e) => setConfirm(e.target.value)}
           autoComplete="new-password"
           disabled={busy}
+          {...confirmCapsLock.inputProps}
         />
+        <CapsLockWarning visible={confirmCapsLock.capsLockOn} />
       </div>
 
       {/* ---------- Bloco opcional: Key File ---------- */}

@@ -17,6 +17,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { Eye, EyeOff, FileLock2, Key, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { CapsLockWarning } from "@/components/CapsLockWarning";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import {
   inspectVaultRecovery,
   type VaultRecoveryState,
 } from "@/lib/fs";
+import { useCapsLockWarning } from "@/hooks/useCapsLockWarning";
 import { openVault } from "@/lib/kdbx";
 import { canRestoreBackup, shouldShowRecoveryPrompt } from "@/lib/vault-recovery";
 import { useSettingsStore } from "@/stores/settings";
@@ -57,6 +59,7 @@ export function UnlockScreen() {
 
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const passwordCapsLock = useCapsLockWarning();
   const [useKeyFile, setUseKeyFile] = useState(lastKeyFilePath !== null);
   const [keyFilePath, setKeyFilePath] = useState<string | null>(
     lastKeyFilePath,
@@ -230,6 +233,7 @@ export function UnlockScreen() {
                     autoComplete="current-password"
                     disabled={busy}
                     className="pr-10"
+                    {...passwordCapsLock.inputProps}
                   />
                   <button
                     type="button"
@@ -241,6 +245,7 @@ export function UnlockScreen() {
                     {showPassword ? <EyeOff /> : <Eye />}
                   </button>
                 </div>
+                <CapsLockWarning visible={passwordCapsLock.capsLockOn} />
               </div>
 
               {lastKeyFilePath !== null && (

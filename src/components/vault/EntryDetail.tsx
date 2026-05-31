@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useDeleteEntry } from "@/hooks/useDeleteEntry";
+import { useDuplicateEntry } from "@/hooks/useDuplicateEntry";
 import { useEntryAttachments } from "@/hooks/useEntryAttachments";
 import { useMoveEntryToGroup } from "@/hooks/useMoveEntryToGroup";
 import { useRemoveEntryHistory } from "@/hooks/useRemoveEntryHistory";
@@ -25,6 +26,7 @@ import { useRestoreEntry } from "@/hooks/useRestoreEntry";
 import { useRestoreEntryHistory } from "@/hooks/useRestoreEntryHistory";
 import { useSetEntryFavorite } from "@/hooks/useSetEntryFavorite";
 import { copyToClipboardWithAutoClear } from "@/lib/clipboard";
+import { openUrlAndCopyPassword } from "@/lib/entry-actions";
 import {
   formatRelative,
   getLastModTime,
@@ -66,6 +68,7 @@ export function EntryDetail() {
   const recycleBinUuidId = useRecycleBinUuidId();
   const kdbx = useVaultStore((s) => s.kdbx);
   const deleteEntry = useDeleteEntry();
+  const duplicateEntry = useDuplicateEntry();
   const moveEntryToGroup = useMoveEntryToGroup();
   const restoreEntry = useRestoreEntry();
   const restoreEntryHistory = useRestoreEntryHistory();
@@ -78,6 +81,7 @@ export function EntryDetail() {
   const [showPassword, setShowPassword] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [favoriting, setFavoriting] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [attachmentAction, setAttachmentAction] = useState<string | null>(null);
@@ -190,6 +194,20 @@ export function EntryDetail() {
     await openExternalSafe(url);
   }
 
+  async function handleOpenUrlAndCopyPassword() {
+    await openUrlAndCopyPassword(url, password);
+  }
+
+  async function handleDuplicate() {
+    if (!entry || inRecycleBin || duplicating) return;
+    setDuplicating(true);
+    try {
+      await duplicateEntry(entry);
+    } finally {
+      setDuplicating(false);
+    }
+  }
+
   function handleEdit() {
     if (!entry || inRecycleBin) return;
     enterEditMode(entry.uuid.id);
@@ -286,11 +304,13 @@ export function EntryDetail() {
         favoriting={favoriting}
         inRecycleBin={inRecycleBin}
         restoring={restoring}
+        duplicating={duplicating}
         historyCount={historyItems.length}
         canMove={!!rootGroup}
         onOpenHistory={() => setHistoryDialogOpen(true)}
         onRestore={() => void handleRestore()}
         onToggleFavorite={() => void handleToggleFavorite()}
+        onDuplicate={() => void handleDuplicate()}
         onEdit={handleEdit}
         onMove={() => setMoveDialogOpen(true)}
         onDelete={handleDelete}
@@ -348,6 +368,19 @@ export function EntryDetail() {
               {url}
               <ExternalLink className="size-3 inline-block" />
             </button>
+          }
+          extraAction={
+            password.length > 0 ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void handleOpenUrlAndCopyPassword()}
+                title="Abrir URL e copiar senha"
+              >
+                <ExternalLink />
+                Abrir + senha
+              </Button>
+            ) : null
           }
           onCopy={() => copyToClipboardWithAutoClear(url, "URL copiada")}
         />
