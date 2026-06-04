@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { openUrlAndCopyPassword } from "./entry-actions";
+import { openUrlAndCopyPassword } from "./secret-actions";
 
-describe("entry action helpers", () => {
+describe("secret action helpers", () => {
   it("opens the entry URL before copying the password for login use", async () => {
     const calls: string[] = [];
     const openUrl = vi.fn(async () => {

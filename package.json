@@ -1,7 +1,7 @@
 {
   "name": "lupo",
   "private": true,
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Gerenciador de senhas desktop, leve e offline-first, compatível com .kdbx (KeePass).",
   "license": "MIT",
   "author": "Yuri Mundin Ferreira",

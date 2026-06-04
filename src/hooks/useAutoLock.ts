@@ -13,7 +13,7 @@
 import { useEffect, useState } from "react";
 import { create } from "zustand";
 
-import { requestLockWithGuard } from "@/lib/lock-flow";
+import { requestLockWithGuard } from "@/services/lock-flow";
 import { useSettingsStore } from "@/stores/settings";
 import { useVaultStore } from "@/stores/vault";
 

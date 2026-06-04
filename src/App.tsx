@@ -16,7 +16,7 @@ import { OpenCreateScreen } from "@/components/vault/OpenCreateScreen";
 import { UnlockScreen } from "@/components/vault/UnlockScreen";
 import { VaultLayout } from "@/components/layout/VaultLayout";
 import { useCloseRequestGuard } from "@/hooks/useCloseRequestGuard";
-import { fileExists } from "@/lib/fs";
+import { fileExists } from "@/services/tauri/fs";
 import { useSettingsStore } from "@/stores/settings";
 import { useVaultStore } from "@/stores/vault";
 

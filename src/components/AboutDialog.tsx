@@ -6,7 +6,7 @@
 //
 // Sem chamadas de rede — alinhado com o princípio offline-first. Os
 // links externos abrem no navegador padrão do sistema via
-// `openExternalSafe` (`src/lib/external.ts`, S21 — antes era função
+// `openExternalSafe` (`src/services/external.ts`, S21 — antes era função
 // local duplicada com EntryDetail.tsx).
 
 import { ArrowUpRight } from "lucide-react";
@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAppVersion } from "@/hooks/useAppVersion";
-import { openExternalSafe } from "@/lib/external";
+import { openExternalSafe } from "@/services/external";
 
 interface AboutDialogProps {
   open: boolean;

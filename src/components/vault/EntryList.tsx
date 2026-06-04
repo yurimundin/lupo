@@ -1,18 +1,8 @@
-// Lista (centro) — entradas do grupo selecionado.
-//
-// Cabeçalho da lista tem botão "+" para criar nova entrada no grupo
-// atual (desabilitado se o grupo é a Lixeira). Cada item: avatar com
-// iniciais (cor derivada do hash do título), título em bold, subtítulo
-// (username || URL || ""). Setas ↑/↓ navegam quando algum item está
-// focado.
-
+import { Fragment } from "react";
 import { Plus, Star, Trash2 } from "lucide-react";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { useEmptyRecycleBin } from "@/hooks/useEmptyRecycleBin";
-import { confirmDialog } from "@/lib/confirm";
-import { ENTRY_DRAG_MIME } from "@/lib/drag-drop";
+import { useEntryListController } from "@/hooks/useEntryListController";
 import {
   getAvatarColorClass,
   getGroupPath,
@@ -22,186 +12,41 @@ import {
   getUsername,
   highlightMatch,
   isEntryFavorite,
-  matchesSearch,
 } from "@/lib/entry-helpers";
 import { cn } from "@/lib/utils";
-import {
-  getGroupDisplayName,
-  getHasUnsavedChanges,
-  useAllEntries,
-  useCurrentGroup,
-  useEntriesOfCurrentGroup,
-  useIsCurrentGroupRecycleBin,
-  useRecycleBinUuidId,
-  useSearchQuery,
-  useVaultStore,
-} from "@/stores/vault";
+import { getGroupDisplayName } from "@/lib/vault-tree";
 
 import { EmptyRecycleBinState } from "./EmptyRecycleBinState";
 import { EmptySearchResults } from "./EmptySearchResults";
 
 export function EntryList() {
-  // Search query vive no store (`setSearchQuery` no `VaultHeader` →
-  // re-render aqui). Ver §17. Reset automático em lock/unlock/setVault.
-  const searchQuery = useSearchQuery();
-  const isSearching = searchQuery.trim().length > 0;
-
-  const groupEntries = useEntriesOfCurrentGroup();
-  // `useAllEntries` é chamado sempre (hooks não podem ser condicionais) mas
-  // só usado quando a query tem texto. Memoização interna do hook evita
-  // re-walk recursivo desnecessário.
-  const allEntries = useAllEntries();
-  const selectedEntryUuid = useVaultStore((s) => s.selectedEntryUuid);
-  const selectedGroupUuid = useVaultStore((s) => s.selectedGroupUuid);
-  const selectEntry = useVaultStore((s) => s.selectEntry);
-  const enterCreateMode = useVaultStore((s) => s.enterCreateMode);
-  const exitToViewMode = useVaultStore((s) => s.exitToViewMode);
-  const isRecycleBin = useIsCurrentGroupRecycleBin();
-  const currentGroup = useCurrentGroup();
-  const recycleBinUuidId = useRecycleBinUuidId();
-  const emptyRecycleBin = useEmptyRecycleBin();
-  const [emptying, setEmptying] = useState(false);
-
-  // Fonte: durante busca, todas as entries (ex-Lixeira); fora dela,
-  // entries do grupo selecionado (comportamento antigo preservado).
-  const sourceEntries = isSearching ? allEntries : groupEntries;
-
-  const filteredEntries = useMemo(() => {
-    if (!isSearching) return sourceEntries;
-    return sourceEntries.filter((e) => matchesSearch(e, searchQuery));
-  }, [sourceEntries, searchQuery, isSearching]);
-
-  const sorted = useMemo(() => {
-    return [...filteredEntries].sort((a, b) =>
-      getTitle(a).localeCompare(getTitle(b), "pt-BR", { sensitivity: "base" }),
-    );
-  }, [filteredEntries]);
-
-  const favoriteEntries = useMemo(
-    () => sorted.filter((entry) => isEntryFavorite(entry)),
-    [sorted],
-  );
-  const otherEntries = useMemo(
-    () => sorted.filter((entry) => !isEntryFavorite(entry)),
-    [sorted],
-  );
-  const orderedEntries = useMemo(
-    () =>
-      favoriteEntries.length > 0
-        ? [...favoriteEntries, ...otherEntries]
-        : sorted,
-    [favoriteEntries, otherEntries, sorted],
-  );
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!selectedEntryUuid) return;
-    const focused = document.activeElement;
-    if (!(focused instanceof HTMLButtonElement)) return;
-    if (!containerRef.current?.contains(focused)) return;
-    const btn = containerRef.current.querySelector<HTMLButtonElement>(
-      `[data-entry-uuid="${selectedEntryUuid}"]`,
-    );
-    btn?.focus();
-  }, [selectedEntryUuid]);
-
-  /**
-   * Guard pra trocar de entry seleccionada quando há draft pendente:
-   * confirma com o usuário antes de descartar. Retorna `true` se a troca
-   * pode prosseguir.
-   */
-  async function confirmDiscardIfDirty(message: string): Promise<boolean> {
-    if (!getHasUnsavedChanges()) return true;
-    return confirmDialog({
-      title: "Mudanças não salvas",
-      description: message,
-      confirmLabel: "Descartar e continuar",
-      cancelLabel: "Voltar e salvar",
-      variant: "danger",
-    });
-  }
-
-  async function handleEntryClick(uuid: string) {
-    if (uuid === selectedEntryUuid) return;
-    const ok = await confirmDiscardIfDirty(
-      "Você tem mudanças não salvas. Mudar de entrada vai descartar essas mudanças. Continuar?",
-    );
-    if (!ok) return;
-    exitToViewMode();
-    selectEntry(uuid);
-  }
-
-  async function handleKeyDown(e: React.KeyboardEvent, idx: number) {
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    const nextIdx =
-      e.key === "ArrowDown" ? idx + 1 : e.key === "ArrowUp" ? idx - 1 : -1;
-    if (nextIdx < 0 || nextIdx >= orderedEntries.length) return;
-    e.preventDefault();
-    const targetUuid = orderedEntries[nextIdx].uuid.id;
-    const ok = await confirmDiscardIfDirty(
-      "Você tem mudanças não salvas. Mudar de entrada vai descartar essas mudanças. Continuar?",
-    );
-    if (!ok) return;
-    exitToViewMode();
-    selectEntry(targetUuid);
-  }
-
-  async function handleCreate() {
-    if (!selectedGroupUuid || isRecycleBin) return;
-    const ok = await confirmDiscardIfDirty(
-      "Você tem mudanças não salvas. Criar uma nova entrada vai descartar essas mudanças. Continuar?",
-    );
-    if (!ok) return;
-    enterCreateMode(selectedGroupUuid);
-  }
-
-  function canDragEntry(entry: (typeof sorted)[number]): boolean {
-    if (!recycleBinUuidId) return true;
-    let group = entry.parentGroup;
-    while (group) {
-      if (group.uuid.id === recycleBinUuidId) return false;
-      group = group.parentGroup;
-    }
-    return true;
-  }
-
-  function handleDragStart(
-    e: React.DragEvent<HTMLButtonElement>,
-    entry: (typeof sorted)[number],
-  ) {
-    if (!canDragEntry(entry)) {
-      e.preventDefault();
-      return;
-    }
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData(ENTRY_DRAG_MIME, entry.uuid.id);
-    e.dataTransfer.setData("text/plain", entry.uuid.id);
-  }
-
-  // Esvaziar Lixeira: hard-delete em massa. Hook trata confirmDialog
-  // (com lembrete de backup), persistência e toasts. `emptying` evita
-  // double-click disparar dois saves em paralelo.
-  async function handleEmptyRecycleBin() {
-    if (emptying) return;
-    setEmptying(true);
-    try {
-      await emptyRecycleBin(sorted.length);
-    } finally {
-      setEmptying(false);
-    }
-  }
+  const {
+    canDragEntry,
+    containerRef,
+    currentGroup,
+    emptying,
+    favoriteEntries,
+    handleCreate,
+    handleDragStart,
+    handleEmptyRecycleBin,
+    handleEntryClick,
+    handleKeyDown,
+    isRecycleBin,
+    isSearching,
+    orderedEntries,
+    otherEntries,
+    recycleBinUuidId,
+    searchQuery,
+    selectedEntryUuid,
+    selectedGroupUuid,
+    sorted,
+  } = useEntryListController();
 
   return (
     <section
       ref={containerRef}
       className="border-r border-border flex flex-col overflow-hidden"
     >
-      {/* Cabeçalho da lista — sempre visível mesmo quando vazio.
-          Em grupo normal: botão "+" para criar nova entrada.
-          Em Lixeira COM entries: botão "Esvaziar" (destructive).
-          Em Lixeira VAZIA: nenhum botão (padrão Gmail).
-          Nome do grupo passa por `getGroupDisplayName` para traduzir
-          "Recycle Bin" → "Lixeira" sem mexer no XML interno. */}
       <header className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-bg-secondary">
         {isSearching ? (
           <span className="text-xs text-muted-foreground min-w-0 truncate">
@@ -224,10 +69,7 @@ export function EntryList() {
             </span>
           </span>
         )}
-        {/* Botões à direita escondidos durante busca: criar entry no
-            grupo "ativo" é ambíguo quando a lista mostra todos os grupos;
-            esvaziar Lixeira não faz sentido pois Lixeira está fora do
-            resultado. Após ESC volta tudo. */}
+
         {!isSearching &&
           (isRecycleBin ? (
             sorted.length > 0 ? (
@@ -249,7 +91,7 @@ export function EntryList() {
               type="button"
               variant="ghost"
               size="icon-sm"
-              onClick={handleCreate}
+              onClick={() => void handleCreate()}
               disabled={!selectedGroupUuid}
               title="Nova entrada"
             >
@@ -259,11 +101,6 @@ export function EntryList() {
       </header>
 
       {sorted.length === 0 ? (
-        // Estado vazio: durante busca, EmptySearchResults tem prioridade
-        // (cross-group, isRecycleBin do grupo selecionado é irrelevante).
-        // Fora de busca: Lixeira ganha ilustração; grupo normal o estado
-        // mínimo herdado da Sessão 3 (polir os outros casos é trabalho
-        // de UX futuro).
         isSearching ? (
           <EmptySearchResults query={searchQuery} />
         ) : isRecycleBin ? (
@@ -292,6 +129,7 @@ export function EntryList() {
               favoriteEntries.length > 0 &&
               otherEntries.length > 0 &&
               idx === favoriteEntries.length;
+
             return (
               <Fragment key={entry.uuid.id}>
                 {showFavoritesHeader && (
@@ -305,75 +143,69 @@ export function EntryList() {
                   </li>
                 )}
                 <li>
-                <button
-                  type="button"
-                  data-entry-uuid={entry.uuid.id}
-                  draggable={draggable}
-                  onDragStart={(e) => handleDragStart(e, entry)}
-                  onClick={() => void handleEntryClick(entry.uuid.id)}
-                  onKeyDown={(e) => void handleKeyDown(e, idx)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                    draggable && "cursor-grab active:cursor-grabbing",
-                    selected
-                      ? "bg-selected-entry border-l-2 border-l-selected-border"
-                      : "border-l-2 border-l-transparent hover:bg-muted",
-                  )}
-                >
-                  <span
+                  <button
+                    type="button"
+                    data-entry-uuid={entry.uuid.id}
+                    draggable={draggable}
+                    onDragStart={(e) => handleDragStart(e, entry)}
+                    onClick={() => void handleEntryClick(entry.uuid.id)}
+                    onKeyDown={(e) => void handleKeyDown(e, idx)}
                     className={cn(
-                      "size-8 rounded-md flex items-center justify-center text-xs font-semibold text-white shrink-0",
-                      getAvatarColorClass(title),
+                      "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                      draggable && "cursor-grab active:cursor-grabbing",
+                      selected
+                        ? "bg-selected-entry border-l-2 border-l-selected-border"
+                        : "border-l-2 border-l-transparent hover:bg-muted",
                     )}
                   >
-                    {getInitials(title)}
-                  </span>
-                  <span className="flex-1 min-w-0">
                     <span
                       className={cn(
-                        "flex min-w-0 items-center gap-1 font-semibold text-sm",
-                        selected && "text-selected-entry-foreground",
+                        "size-8 rounded-md flex items-center justify-center text-xs font-semibold text-white shrink-0",
+                        getAvatarColorClass(title),
                       )}
                     >
-                      {favorite && (
-                        <Star className="size-3.5 shrink-0 fill-amber-400 text-amber-500" />
-                      )}
-                      <span className="truncate">
-                      {/* Highlight do trecho que casa com a query.
-                          Aplicado APENAS durante busca e quando há
-                          título real (não no fallback "(sem título)"). */}
-                      {isSearching && getTitle(entry)
-                        ? highlightMatch(getTitle(entry), searchQuery).map(
-                            (part, i) =>
-                              part.highlighted ? (
-                                <mark
-                                  key={i}
-                                  className="bg-yellow-200 dark:bg-yellow-800/50 rounded-sm px-0.5"
-                                >
-                                  {part.text}
-                                </mark>
-                              ) : (
-                                <span key={i}>{part.text}</span>
-                              ),
-                          )
-                        : title}
-                      </span>
+                      {getInitials(title)}
                     </span>
-                    {subtitle && (
-                      <span className="block text-xs text-muted-foreground truncate">
-                        {subtitle}
+                    <span className="flex-1 min-w-0">
+                      <span
+                        className={cn(
+                          "flex min-w-0 items-center gap-1 font-semibold text-sm",
+                          selected && "text-selected-entry-foreground",
+                        )}
+                      >
+                        {favorite && (
+                          <Star className="size-3.5 shrink-0 fill-amber-400 text-amber-500" />
+                        )}
+                        <span className="truncate">
+                          {isSearching && getTitle(entry)
+                            ? highlightMatch(getTitle(entry), searchQuery).map(
+                                (part, i) =>
+                                  part.highlighted ? (
+                                    <mark
+                                      key={i}
+                                      className="bg-yellow-200 dark:bg-yellow-800/50 rounded-sm px-0.5"
+                                    >
+                                      {part.text}
+                                    </mark>
+                                  ) : (
+                                    <span key={i}>{part.text}</span>
+                                  ),
+                              )
+                            : title}
+                        </span>
                       </span>
-                    )}
-                    {/* Caminho do grupo abaixo do username quando busca
-                        ativa. Cor sutil (muted/70) para subordinar à
-                        info principal. */}
-                    {isSearching && (
-                      <span className="block text-xs text-muted-foreground/70 truncate">
-                        {getGroupPath(entry, recycleBinUuidId)}
-                      </span>
-                    )}
-                  </span>
-                </button>
+                      {subtitle && (
+                        <span className="block text-xs text-muted-foreground truncate">
+                          {subtitle}
+                        </span>
+                      )}
+                      {isSearching && (
+                        <span className="block text-xs text-muted-foreground/70 truncate">
+                          {getGroupPath(entry, recycleBinUuidId)}
+                        </span>
+                      )}
+                    </span>
+                  </button>
                 </li>
               </Fragment>
             );

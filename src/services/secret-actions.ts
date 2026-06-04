@@ -11,6 +11,18 @@ const defaultDeps: OpenUrlAndCopyPasswordDeps = {
   copyPassword: copyToClipboardWithAutoClear,
 };
 
+export async function copySecretWithAutoClear(
+  text: string,
+  label = "Copiado",
+): Promise<void> {
+  return copyToClipboardWithAutoClear(text, label);
+}
+
+export async function openEntryUrl(url: string): Promise<boolean> {
+  if (!url) return false;
+  return openExternalSafe(url);
+}
+
 export async function openUrlAndCopyPassword(
   url: string,
   password: string,

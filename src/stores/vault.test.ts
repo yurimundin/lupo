@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildGroupTree,
   buildMoveEntryTargetOptions,
-  collectEntriesForSearch,
   getGroupDisplayName,
-} from "./vault";
+} from "@/lib/vault-tree";
+import { collectEntriesForSearch } from "@/lib/vault-search";
 
 import type { KdbxGroup } from "kdbxweb";
 

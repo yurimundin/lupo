@@ -21,10 +21,12 @@ import {
   flattenVisibleGroupTree,
   isGroupInRecycleBinSubtree,
 } from "@/lib/vault-tree";
-import { useSettingsStore } from "@/stores/settings";
 import {
   findEntryByUuidIdInDb,
   findGroupByUuidIdInDb,
+} from "@/lib/vault-find";
+import { useSettingsStore } from "@/stores/settings";
+import {
   useGroupTree,
   useRecycleBinUuidId,
   useVaultStore,

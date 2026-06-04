@@ -12,11 +12,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { restoreVaultBackup, type VaultRecoveryState } from "@/lib/fs";
 import {
   canRestoreBackup,
   getRecoverySummary,
 } from "@/lib/vault-recovery";
+import {
+  restoreVaultBackup,
+  type VaultRecoveryState,
+} from "@/services/tauri/fs";
 
 type Props = {
   open: boolean;

@@ -23,10 +23,11 @@ describe("file byte helpers", () => {
     expect(getFileNameFromPath("C:\\docs\\contrato.pdf")).toBe("contrato.pdf");
     expect(getFileNameFromPath("/home/user/contrato.pdf")).toBe("contrato.pdf");
     expect(getFileNameFromPath("contrato.pdf")).toBe("contrato.pdf");
+    expect(getFileNameFromPath("C:\\docs\\")).toBe("anexo");
   });
 
-  it("reads a local file as Uint8Array through the backend", async () => {
-    invokeMock.mockResolvedValue([1, 2, 3]);
+  it("normalizes bytes returned from the read command", async () => {
+    invokeMock.mockResolvedValueOnce([1, 2, 3]);
 
     await expect(readLocalFileBytes("C:/docs/a.txt")).resolves.toEqual(
       new Uint8Array([1, 2, 3]),
@@ -36,14 +37,14 @@ describe("file byte helpers", () => {
     });
   });
 
-  it("writes local bytes through the backend backup command", async () => {
-    invokeMock.mockResolvedValue(undefined);
+  it("writes bytes through the backup-aware command", async () => {
+    invokeMock.mockResolvedValueOnce(undefined);
 
-    await writeLocalFileBytes("C:/docs/a.txt", new Uint8Array([1, 2, 3]));
+    await writeLocalFileBytes("C:/docs/a.txt", new Uint8Array([4, 5]));
 
     expect(invokeMock).toHaveBeenCalledWith("write_file_with_backup", {
       path: "C:/docs/a.txt",
-      bytes: [1, 2, 3],
+      bytes: [4, 5],
     });
   });
 });

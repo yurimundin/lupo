@@ -12,10 +12,11 @@
 
 import { useEffect } from "react";
 
-import { copyToClipboardWithAutoClear } from "@/lib/clipboard";
 import { getPassword } from "@/lib/entry-helpers";
-import { requestLockWithGuard } from "@/lib/lock-flow";
-import { findEntryByUuidIdInDb, useVaultStore } from "@/stores/vault";
+import { findEntryByUuidIdInDb } from "@/lib/vault-find";
+import { requestLockWithGuard } from "@/services/lock-flow";
+import { copySecretWithAutoClear } from "@/services/secret-actions";
+import { useVaultStore } from "@/stores/vault";
 
 interface GlobalShortcutsOptions {
   onOpenCommandPalette?: () => void;
@@ -88,7 +89,7 @@ export function useGlobalShortcuts(
         if (!pw) return;
 
         e.preventDefault();
-        void copyToClipboardWithAutoClear(pw, "Senha copiada");
+        void copySecretWithAutoClear(pw, "Senha copiada");
       }
     }
 

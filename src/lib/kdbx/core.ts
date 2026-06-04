@@ -1,7 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import * as kdbxweb from "kdbxweb";
 
-import { deriveArgon2Key, type Argon2Variant } from "../argon2";
+import {
+  deriveArgon2Key,
+  type Argon2Variant,
+} from "@/services/tauri/argon2";
 
 import {
   describeError,

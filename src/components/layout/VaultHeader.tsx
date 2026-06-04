@@ -10,7 +10,7 @@ import { SecuritySettingsDialog } from "@/components/SecuritySettingsDialog";
 import { Button } from "@/components/ui/button";
 import { VaultAuditDialog } from "@/components/VaultAuditDialog";
 import { SearchInput } from "@/components/vault/SearchInput";
-import { requestLockWithGuard } from "@/lib/lock-flow";
+import { requestLockWithGuard } from "@/services/lock-flow";
 import {
   useHasUnsavedChanges,
   useSearchQuery,

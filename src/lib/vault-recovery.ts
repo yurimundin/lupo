@@ -1,4 +1,4 @@
-import type { VaultRecoveryState } from "@/lib/fs";
+import type { VaultRecoveryState } from "@/services/tauri/fs";
 
 export function shouldShowRecoveryPrompt(
   state: VaultRecoveryState | null,
@@ -22,4 +22,3 @@ export function getRecoverySummary(state: VaultRecoveryState): string {
   }
   return "Existe informacao de recuperacao ao lado deste cofre.";
 }
-

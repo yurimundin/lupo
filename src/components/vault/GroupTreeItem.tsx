@@ -21,7 +21,7 @@ import { useState } from "react";
 import { ENTRY_DRAG_MIME } from "@/lib/drag-drop";
 import { GROUP_ICON_BY_ID, GROUP_ICON_COLOR_BY_ID } from "@/lib/group-icons";
 import { cn } from "@/lib/utils";
-import type { GroupTreeNode } from "@/stores/vault";
+import type { GroupTreeNode } from "@/lib/vault-tree";
 
 import { GroupContextMenu } from "./GroupContextMenu";
 

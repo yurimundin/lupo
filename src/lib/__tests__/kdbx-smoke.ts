@@ -17,7 +17,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import * as kdbxweb from "kdbxweb";
 
-import { deriveArgon2Key } from "../argon2";
+import { deriveArgon2Key } from "@/services/tauri/argon2";
 
 const KDBX4_DEFAULT_MEMORY_KIB = 65536; // 64 MiB
 const KDBX4_DEFAULT_ITERATIONS = 2;

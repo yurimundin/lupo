@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import {
   buildMoveEntryTargetOptions,
   type MoveEntryTargetOption,
-} from "@/stores/vault";
+} from "@/lib/vault-tree";
 
 type Props = {
   open: boolean;

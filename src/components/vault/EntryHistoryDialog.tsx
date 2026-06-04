@@ -19,11 +19,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { copyToClipboardWithAutoClear } from "@/lib/clipboard";
 import type {
   EntryHistoryComparisonItem,
   EntryHistoryItem,
 } from "@/lib/kdbx";
+import { copySecretWithAutoClear } from "@/services/secret-actions";
 
 interface EntryHistoryDialogProps {
   open: boolean;
@@ -270,7 +270,7 @@ function HistoryField({
             variant="ghost"
             size="icon-xs"
             onClick={() =>
-              copyToClipboardWithAutoClear(copyValue, `${label} copiado`)
+              copySecretWithAutoClear(copyValue, `${label} copiado`)
             }
             title={`Copiar ${label.toLowerCase()}`}
             aria-label={`Copiar ${label.toLowerCase()}`}

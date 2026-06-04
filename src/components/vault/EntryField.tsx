@@ -8,6 +8,8 @@ interface EntryFieldProps {
   value: React.ReactNode;
   valueClassName?: string;
   onCopy?: (() => void) | undefined;
+  copyTitle?: string;
+  copyButtonLabel?: string;
   extraAction?: React.ReactNode;
 }
 
@@ -17,6 +19,8 @@ export function EntryField({
   value,
   valueClassName,
   onCopy,
+  copyTitle = "Copiar",
+  copyButtonLabel,
   extraAction,
 }: EntryFieldProps) {
   return (
@@ -32,11 +36,13 @@ export function EntryField({
           {onCopy && (
             <Button
               variant="ghost"
-              size="icon-sm"
+              size={copyButtonLabel ? "sm" : "icon-sm"}
               onClick={onCopy}
-              title="Copiar"
+              title={copyTitle}
+              aria-label={copyTitle}
             >
               <Copy />
+              {copyButtonLabel}
             </Button>
           )}
         </div>

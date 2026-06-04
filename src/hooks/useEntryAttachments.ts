@@ -8,7 +8,7 @@ import {
   getFileNameFromPath,
   readLocalFileBytes,
   writeLocalFileBytes,
-} from "@/lib/file-bytes";
+} from "@/services/tauri/file-bytes";
 import {
   addEntryAttachmentInVault,
   getEntryAttachmentBytes,

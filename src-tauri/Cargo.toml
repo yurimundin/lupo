@@ -1,6 +1,6 @@
 [package]
 name = "lupo"
-version = "0.1.6"
+version = "0.1.7"
 description = "Lupo password manager"
 authors = ["Yuri Mundin Ferreira"]
 edition = "2021"

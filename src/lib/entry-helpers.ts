@@ -128,10 +128,10 @@ export function getAvatarColorClass(text: string): string {
 /**
  * Retorna o caminho do grupo de uma entry como string formatada.
  * Walk-up via `parentGroup`, traduz Lixeira (i18n consistente com
- * `getGroupDisplayName` em `vault.ts`).
+ * `getGroupDisplayName` em `vault-tree.ts`).
  *
- * Não importa `getGroupDisplayName` direto para evitar ciclo
- * `entry-helpers.ts ↔ vault.ts` (vault.ts já importa helpers daqui).
+ * Não importa `getGroupDisplayName` direto para evitar ciclo entre helpers
+ * de entrada e helpers de árvore.
  * A regra de tradução é uma única linha — duplicação aceitável.
  *
  * @example "Pessoal / Bancos"

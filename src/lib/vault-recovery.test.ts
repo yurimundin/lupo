@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { VaultRecoveryState } from "@/lib/fs";
+import type { VaultRecoveryState } from "@/services/tauri/fs";
 
 import {
   canRestoreBackup,
@@ -75,4 +75,3 @@ describe("vault recovery UI rules", () => {
     ).toBe(false);
   });
 });
-

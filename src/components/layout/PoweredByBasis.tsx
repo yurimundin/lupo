@@ -8,7 +8,7 @@
 // fica como último filho — naturalmente empurrado para o fundo.
 // Renderiza apenas quando o vault está aberto (tree não-vazio).
 
-import { openExternalSafe } from "@/lib/external";
+import { openExternalSafe } from "@/services/external";
 
 export function PoweredByBasis() {
   return (

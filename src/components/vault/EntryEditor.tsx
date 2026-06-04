@@ -28,7 +28,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCommitEdit } from "@/hooks/useCommitEdit";
-import { copyToClipboardWithAutoClear } from "@/lib/clipboard";
+import { copySecretWithAutoClear } from "@/services/secret-actions";
 import {
   useHasUnsavedChanges,
   useVaultStore,
@@ -286,7 +286,7 @@ export function EntryEditor() {
                 size="icon-sm"
                 onClick={() =>
                   draft.password &&
-                  copyToClipboardWithAutoClear(draft.password, "Senha copiada")
+                  copySecretWithAutoClear(draft.password, "Senha copiada")
                 }
                 disabled={!draft.password}
                 title="Copiar senha"

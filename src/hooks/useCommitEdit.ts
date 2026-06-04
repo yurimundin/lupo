@@ -22,8 +22,8 @@ import { createEntryInVault, updateEntryFieldsInVault } from "@/lib/kdbx";
 import {
   findEntryByUuidIdInDb,
   findGroupByUuidIdInDb,
-  useVaultStore,
-} from "@/stores/vault";
+} from "@/lib/vault-find";
+import { useVaultStore } from "@/stores/vault";
 
 export function useCommitEdit(): () => Promise<boolean> {
   const editMode = useVaultStore((s) => s.editMode);

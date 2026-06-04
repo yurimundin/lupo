@@ -1,21 +1,4 @@
-// Tela de desbloqueio simplificada — aparece quando o usuário bloqueou
-// (ou auto-lock disparou) mas o app ainda lembra qual era o cofre. A
-// partir da Sessão 8, também aparece no boot quando há cofre persistido
-// em `settings.lastOpenedVaultPath` e o arquivo ainda existe no disco.
-// Mostra o nome do arquivo já fixado e pede só credenciais.
-//
-// Reusa a mesma `openVault` da Tarefa 3, e populariza o store
-// diretamente. Se há key file lembrado, pré-preenche; se sumiu do disco,
-// mostra warning e abre picker uma vez (mesmo padrão do `OpenVaultTab`).
-//
-// Sessão 8: redesign visual com logo Lupo 96px + hierarquia
-// unificada com OpenCreateScreen (mesmo header, mesmo footer, mesmo
-// container). Card sem tabs (UnlockScreen é um fluxo focado: abrir
-// AQUELE cofre, não escolher entre abrir/criar).
-
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { Eye, EyeOff, FileLock2, Key, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 
 import { CapsLockWarning } from "@/components/CapsLockWarning";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -24,167 +7,38 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  fileExists,
-  inspectVaultRecovery,
-  type VaultRecoveryState,
-} from "@/lib/fs";
-import { useCapsLockWarning } from "@/hooks/useCapsLockWarning";
-import { openVault } from "@/lib/kdbx";
-import { canRestoreBackup, shouldShowRecoveryPrompt } from "@/lib/vault-recovery";
-import { useSettingsStore } from "@/stores/settings";
-import { useVaultStore } from "@/stores/vault";
+import { baseName, useUnlockVaultFlow } from "@/hooks/useUnlockVaultFlow";
 
 import { VaultRecoveryDialog } from "./VaultRecoveryDialog";
 
 export function UnlockScreen() {
-  const lastFilePath = useVaultStore((s) => s.lastFilePath);
-  const lastKeyFilePath = useVaultStore((s) => s.lastKeyFilePath);
-  const unlock = useVaultStore((s) => s.unlock);
-  const resetVault = useVaultStore((s) => s.reset);
-  const rememberKeyFileSetting = useSettingsStore((s) => s.rememberKeyFile);
-  const forgetKeyFileSetting = useSettingsStore((s) => s.forgetKeyFile);
-  const setLastOpenedVaultPath = useSettingsStore(
-    (s) => s.setLastOpenedVaultPath,
-  );
-
-  // Quando o usuário escolhe "Abrir outro cofre", limpa também o
-  // caminho persistido — assim o próximo boot do app NÃO traz esse
-  // mesmo cofre de volta automaticamente. Reflete o intent do botão
-  // ("voltar para a tela inicial" implica abandonar o auto-load atual).
-  function handleBackToInitial() {
-    setLastOpenedVaultPath(null);
-    resetVault();
-  }
-
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const passwordCapsLock = useCapsLockWarning();
-  const [useKeyFile, setUseKeyFile] = useState(lastKeyFilePath !== null);
-  const [keyFilePath, setKeyFilePath] = useState<string | null>(
+  const {
+    busy,
+    canUnlock,
+    error,
+    handleBackToInitial,
+    handleSelectKeyFile,
+    handleToggleKeyFile,
+    handleUnlock,
+    keyFilePath,
+    lastFilePath,
     lastKeyFilePath,
-  );
-  const [rememberedKeyFileMissing, setRememberedKeyFileMissing] =
-    useState(false);
-  const [recoveryState, setRecoveryState] =
-    useState<VaultRecoveryState | null>(null);
-  const [recoveryOpen, setRecoveryOpen] = useState(false);
-  const [dismissedRecovery, setDismissedRecovery] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const autoPromptedRef = useRef(false);
-
-  // Verifica se o key file lembrado ainda existe.
-  useEffect(() => {
-    if (!lastKeyFilePath) return;
-    let cancelled = false;
-    (async () => {
-      const exists = await fileExists(lastKeyFilePath);
-      if (cancelled) return;
-      if (!exists) {
-        setKeyFilePath(null);
-        setRememberedKeyFileMissing(true);
-        if (!autoPromptedRef.current) {
-          autoPromptedRef.current = true;
-          await handleSelectKeyFile();
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [lastKeyFilePath]);
-
-  useEffect(() => {
-    if (!lastFilePath || dismissedRecovery) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const state = await inspectVaultRecovery(lastFilePath);
-        if (cancelled) return;
-        setRecoveryState(state);
-        if (shouldShowRecoveryPrompt(state)) {
-          setRecoveryOpen(true);
-        }
-      } catch {
-        // Recovery e best-effort; o desbloqueio normal continua disponivel.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [lastFilePath, dismissedRecovery]);
-
-  async function handleSelectKeyFile() {
-    setError(null);
-    try {
-      const path = await openDialog({
-        title: "Selecione o key file",
-        multiple: false,
-        directory: false,
-        filters: [{ name: "Key File", extensions: ["keyx", "key", "*"] }],
-      });
-      if (typeof path === "string") {
-        setKeyFilePath(path);
-        setRememberedKeyFileMissing(false);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  }
-
-  async function handleUnlock(event: React.FormEvent) {
-    event.preventDefault();
-    if (!lastFilePath || password.length === 0 || busy) return;
-    if (useKeyFile && !keyFilePath) return;
-
-    setError(null);
-    setBusy(true);
-    try {
-      const usedKeyFilePath = useKeyFile ? keyFilePath : null;
-      const db = await openVault(lastFilePath, password, usedKeyFilePath);
-      setPassword("");
-
-      unlock(db);
-
-      // Atualiza memória.
-      if (usedKeyFilePath) {
-        rememberKeyFileSetting(lastFilePath, usedKeyFilePath);
-      } else if (
-        useSettingsStore.getState().getRememberedKeyFile(lastFilePath) !== null
-      ) {
-        forgetKeyFileSetting(lastFilePath);
-      }
-
-      // Reforça o caminho como "último cofre" pra auto-load no próximo
-      // boot. Em teoria já está setado (cofre só chega ao UnlockScreen
-      // após ter passado pelo OpenVaultTab/CreateVaultTab que setam),
-      // mas redundância barata garante invariante. Ver §24 CLAUDE.md.
-      useSettingsStore.getState().setLastOpenedVaultPath(lastFilePath);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      setError(message);
-      if (lastFilePath && /corrompido|corrupt|kdbx/i.test(message)) {
-        try {
-          const state = await inspectVaultRecovery(lastFilePath);
-          setRecoveryState(state);
-          if (canRestoreBackup(state)) {
-            setRecoveryOpen(true);
-          }
-        } catch {
-          // Mantem o erro original de abertura.
-        }
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
+    password,
+    passwordCapsLock,
+    recoveryOpen,
+    recoveryState,
+    rememberedKeyFileMissing,
+    setDismissedRecovery,
+    setError,
+    setPassword,
+    setRecoveryOpen,
+    setRecoveryState,
+    setShowPassword,
+    showPassword,
+    useKeyFile,
+  } = useUnlockVaultFlow();
 
   if (!lastFilePath) return null;
-
-  const canUnlock =
-    password.length > 0 && !busy && (!useKeyFile || keyFilePath !== null);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
@@ -254,18 +108,7 @@ export function UnlockScreen() {
                     <Checkbox
                       id="unlock-use-key-file"
                       checked={useKeyFile}
-                      onCheckedChange={(c) => {
-                        const v = c === true;
-                        setUseKeyFile(v);
-                        if (!v) {
-                          setKeyFilePath(null);
-                          setRememberedKeyFileMissing(false);
-                        } else if (lastKeyFilePath) {
-                          // Volta a sugerir o lembrado (re-verifica existência
-                          // ao tentar desbloquear).
-                          setKeyFilePath(lastKeyFilePath);
-                        }
-                      }}
+                      onCheckedChange={(c) => handleToggleKeyFile(c === true)}
                       disabled={busy}
                       className="mt-0.5"
                     />
@@ -358,6 +201,7 @@ export function UnlockScreen() {
           Compatível com KeePass / KeePassXC · Offline-first
         </p>
       </div>
+
       <VaultRecoveryDialog
         open={recoveryOpen}
         filePath={lastFilePath}
@@ -378,9 +222,4 @@ export function UnlockScreen() {
       />
     </div>
   );
-}
-
-function baseName(filePath: string): string {
-  const parts = filePath.split(/[\\/]/);
-  return parts[parts.length - 1] || filePath;
 }
