@@ -101,7 +101,7 @@ jobs:
         run: npm run dist:windows
 
       - name: Upload Windows installers
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: secbasis-windows-installers
           path: |
